@@ -1,0 +1,40 @@
+/timesheet.db*
+/.pytest_cache/
+/__pycache__/
+/venv/
+
+#
+# For ts dir
+#
+
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+# dependencies
+/**/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Miscellaneous
+/ts/.angular/cache
+/ts/.sass-cache
+/ts/connect.lock
+/ts/coverage
+/ts//libpeerconnection.log
+/ts/npm-debug.log
+/ts/yarn-error.log
+/ts/testem.log
+/ts/typings
+
+# System Files
+.DS_Store
+Thumbs.db

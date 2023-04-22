@@ -1,0 +1,11 @@
+table {
+  width: 100%;
+}
+
+td {
+  min-width: 24px;
+}
+
+.basic-container {
+  padding: 30px;
+}
