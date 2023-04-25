@@ -1,6 +1,6 @@
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {catchError} from "rxjs/operators";
+// import {catchError} from "rxjs/operators";
 import {WorkReportByCategory, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
 
@@ -18,15 +18,29 @@ export class WorkService {
   }
 
   /** GET work report grouped by categories from the server */
-  getWorkReportByCategory(): Observable<WorkReportByCategory[]> {
-    return this.http.get<WorkReportByCategory[]>(`${this.workUrl}/report_by_category`)
+  getWorkReportByCategory(start: Date, end: Date): Observable<WorkReportByCategory[]> {
+    // TODO: maybe convert to UTC?
+    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+    const startDateTime = `${start.getFullYear()}-${startMonth}-${start.getDate()}T00:00:00`;
+    const endDateTime = `${end.getFullYear()}-${endMonth}-${end.getDate()}T23:59:59`;
+    const url = `${this.workUrl}/report_by_category?start_datetime=${startDateTime}&end_datetime=${endDateTime}`;
+
+    return this.http.get<WorkReportByCategory[]>(url)
       .pipe(
         // catchError(this.handleError('getHeroes', []))
       );
   }
 
-  getWorkReportTotal(): Observable<WorkReportTotal> {
-    return this.http.get<WorkReportTotal>(`${this.workUrl}/report_total`)
+  getWorkReportTotal(start: Date, end: Date): Observable<WorkReportTotal> {
+    // TODO: maybe convert to UTC?
+    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+    const startDateTime = `${start.getFullYear()}-${startMonth}-${start.getDate()}T00:00:00`;
+    const endDateTime = `${end.getFullYear()}-${endMonth}-${end.getDate()}T23:59:59`;
+    const url = `${this.workUrl}/report_total?start_datetime=${startDateTime}&end_datetime=${endDateTime}`;
+
+    return this.http.get<WorkReportTotal>(url)
       .pipe(
         // catchError(this.handleError('getHeroes', []))
       );

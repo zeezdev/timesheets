@@ -1,8 +1,8 @@
 from datetime import datetime
 from itertools import islice
-from typing import Union, Optional
+from typing import Union, Optional, Annotated
 
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -74,15 +74,21 @@ def read_tasks() -> list[Task]:
 
 
 @router.get('/work/report_by_category')
-def get_work_report_by_category() -> list[WorkReportCategory]:
-    curr_month = datetime.now().month
-    curr_year = datetime.now().year
-    curr_day = datetime.now().day  # FIXME:
+def get_work_report_by_category(
+    start_datetime: Annotated[datetime | None, Body()] = None,
+    end_datetime: Annotated[datetime | None, Body()] = None,
+) -> list[WorkReportCategory]:
+    assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
-    start_dt = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
-    end_dt = datetime(curr_year, curr_month, 20, 23, 59, 59)
+    if not start_datetime and not end_datetime:
+        curr_month = datetime.now().month
+        curr_year = datetime.now().year
+        curr_day = datetime.now().day  # FIXME:
 
-    rows = work_get_report_category(start_dt, end_dt)
+        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
+        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+
+    rows = work_get_report_category(start_datetime, end_datetime)
     return [WorkReportCategory(
         category_id=row[0],
         category_name=row[1],
@@ -91,16 +97,22 @@ def get_work_report_by_category() -> list[WorkReportCategory]:
 
 
 @router.get('/work/report_total')
-def get_work_report_total() -> WorkReportTotal:
-    """Last month"""
-    curr_month = datetime.now().month
-    curr_year = datetime.now().year
-    curr_day = datetime.now().day  # FIXME:
+def get_work_report_total(
+    start_datetime: Annotated[datetime | None, Body()] = None,
+    end_datetime: Annotated[datetime | None, Body()] = None,
+) -> WorkReportTotal:
+    assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
-    start_dt = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
-    end_dt = datetime(curr_year, curr_month, 20, 23, 59, 59)
+    if not start_datetime and not end_datetime:
+        # Get report for the last month
+        curr_month = datetime.now().month
+        curr_year = datetime.now().year
+        curr_day = datetime.now().day  # FIXME:
 
-    rows = work_get_report_total(start_dt, end_dt)
+        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
+        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+
+    rows = work_get_report_total(start_datetime, end_datetime)
     rows = islice(rows, 1, None)
     row = next(rows)
 
