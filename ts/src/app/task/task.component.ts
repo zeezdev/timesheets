@@ -12,6 +12,7 @@ import {WorkService} from '../work/work.service';
 export class TaskComponent implements OnInit {
   tasks: Task[] = [];
   displayedColumns: string[] = ['id', 'name', 'category_id', 'actions'];
+  hasActiveTask: boolean = false;
 
   constructor(private taskService: TaskService, private workService: WorkService) { }
 
@@ -20,15 +21,25 @@ export class TaskComponent implements OnInit {
   }
 
   getTasks() {
-    this.taskService.getTasks().subscribe(tasks => (this.tasks = tasks));
+    this.taskService.getTasks().subscribe(
+      tasks => {
+        this.hasActiveTask = false;
+        for (const task of tasks) {
+          if (task.is_current) {
+            this.hasActiveTask = true;
+            break;
+          }
+        }
+        this.tasks = tasks;
+      });
   }
 
   startWork(id) {
     console.log(`Start work for ${id}`);
-    this.workService.startWork(id);
+    this.workService.startWork(id).subscribe(() => this.getTasks());
   }
 
   stopWork() {
-    this.workService.stopWorkCurrent();
+    this.workService.stopWorkCurrent().subscribe(() => this.getTasks());
   }
 }
