@@ -19,6 +19,7 @@ class Task(BaseModel):
     id: int
     name: str
     category_id: int
+    is_current: int
 
 
 class WorkReportCategory(BaseModel):
@@ -70,6 +71,7 @@ def read_tasks() -> list[Task]:
         id=row[0],
         name=row[1],
         category_id=row[2],
+        is_current=row[3],
     ) for row in islice(rows, 1, None)]
 
 

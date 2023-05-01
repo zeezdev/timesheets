@@ -55,17 +55,17 @@ export class WorkService {
     this.http.post(`${this.workUrl}/items`, body);
   }
 
-  startWork(taskId: number): void {
+  startWork(taskId: number): Observable<any> {
     console.log(`startWork(${taskId})`);
     const body = {
       task_id: taskId
     };
-    this.http.post(`${this.workUrl}/start`, body).subscribe();
+    return this.http.post(`${this.workUrl}/start`, body);
   }
 
-  stopWorkCurrent(): void {
+  stopWorkCurrent(): Observable<any> {
     console.log('stopWorkCurrent');
-    this.http.post(`${this.workUrl}/stop_current`, {}).subscribe();
+    return this.http.post(`${this.workUrl}/stop_current`, {});
   }
 }
 

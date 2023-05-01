@@ -1,5 +1,4 @@
 import contextlib
-import math
 import sqlite3
 from datetime import datetime
 from itertools import chain
@@ -95,7 +94,14 @@ def task_print_all() -> None:
 
 
 def task_list() -> list:
-    return execute_statement('SELECT id, name, category_id FROM main.tasks ORDER BY id')
+    return execute_statement(
+        'SELECT t.id, t.name, t.category_id, '
+        'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
+        'FROM main.tasks AS t '
+        'LEFT JOIN main.work_items AS w '
+        'ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'ORDER BY t.id'
+    )
 
 
 # WORK

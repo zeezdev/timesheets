@@ -15,10 +15,10 @@ import {MatSortModule} from '@angular/material/sort';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatNativeDateModule} from '@angular/material/core';
 import {MatDatepickerModule} from '@angular/material/datepicker';
-// import {FlexLayoutModule} from '@angular/flex-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {MatBottomSheetModule} from '@angular/material/bottom-sheet';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
+import {MatIconModule} from "@angular/material/icon";
 
 @NgModule({
   declarations: [
@@ -42,12 +42,10 @@ import {MatButtonToggleModule} from '@angular/material/button-toggle';
     MatBottomSheetModule,
     MatButtonModule,
     MatButtonToggleModule,
-    //
-    // FlexLayoutModule,  // https://medium.com/ngconf/angular-flex-layout-ddf1c8fad37e
-    //
     ReactiveFormsModule,
     MatDatepickerModule,
     MatDatepickerModule,
+    MatIconModule,
   ],
   providers: [],
   bootstrap: [AppComponent]
