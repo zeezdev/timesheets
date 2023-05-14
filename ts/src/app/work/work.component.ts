@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import {WorkService} from './work.service';
-import {WorkReportByCategory, WorkReportTotal} from './work';
+import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {map} from 'rxjs/operators';
-import {FormGroup, FormControl, FormBuilder} from '@angular/forms';
+import {FormGroup, FormControl} from '@angular/forms';
 import {MomentDateAdapter, MAT_MOMENT_DATE_ADAPTER_OPTIONS} from '@angular/material-moment-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
 
@@ -55,10 +55,10 @@ const day = today.getDate();
 })
 export class WorkComponent implements OnInit {
   workReport: { category_id: number, category_name: string, time: string }[] = [];
+  workReportByTask: { task_id: number, task_name: string, category_id: number, time: string }[] = [];
   workTotal: string = null;
-  // workReport: any[] = [];
-  // workReport: WorkReportByCategory[] = [];
   displayedColumns: string[] = ['category_id', 'category_name', 'time'];
+  displayedColumnsByTask: string[] = ['task_id', 'task_name', 'category_id', 'time'];
   range = new FormGroup({
     start: new FormControl(new Date(year, day>20 ? month : month-1, 21)),
     end: new FormControl(new Date(year, day>20 ? month+1 : month, 20))
@@ -71,6 +71,7 @@ export class WorkComponent implements OnInit {
     const end = new Date(this.range.value.end);
 
     this.getWorkReportByCategory(start, end);
+    this.getWorkReportByTask(start, end);
     this.getWorkReportTotal(start, end);
   }
 
@@ -87,6 +88,23 @@ export class WorkComponent implements OnInit {
       )
     ).subscribe(
       workReport => {this.workReport = workReport}
+    );
+  }
+
+  getWorkReportByTask(start: Date, end: Date) {
+    this.workService.getWorkReportByTask(start, end).pipe(
+      map((report: WorkReportByTask[]) =>
+        report.map((rep: WorkReportByTask) => {
+          return {
+            task_id: rep.task_id,
+            task_name: rep.task_name,
+            category_id: rep.category_id,
+            time: (rep.time / 60 / 60 / 8).toFixed(2)
+          };
+        })
+      )
+    ).subscribe(
+      workReport => {this.workReportByTask = workReport}
     );
   }
 
@@ -107,6 +125,7 @@ export class WorkComponent implements OnInit {
 
       console.log(`start=${start}, end=${end}`);
       this.getWorkReportByCategory(start, end);
+      this.getWorkReportByTask(start, end);
       this.getWorkReportTotal(start, end);
     }
   }
