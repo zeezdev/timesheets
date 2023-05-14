@@ -1,13 +1,13 @@
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 // import {catchError} from "rxjs/operators";
-import {WorkReportByCategory, WorkReportTotal} from './work';
+import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
 
 
 @Injectable()
 export class WorkService {
-  workUrl = 'http://localhost:8000/api/work';
+  workUrl = 'http://localhost:8874/api/work';
   // private handleError: HandleError;
 
   constructor(
@@ -27,6 +27,21 @@ export class WorkService {
     const url = `${this.workUrl}/report_by_category?start_datetime=${startDateTime}&end_datetime=${endDateTime}`;
 
     return this.http.get<WorkReportByCategory[]>(url)
+      .pipe(
+        // catchError(this.handleError('getHeroes', []))
+      );
+  }
+
+  /** GET work report grouped by categories from the server */
+  getWorkReportByTask(start: Date, end: Date): Observable<WorkReportByTask[]> {
+    // TODO: maybe convert to UTC?
+    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+    const startDateTime = `${start.getFullYear()}-${startMonth}-${start.getDate()}T00:00:00`;
+    const endDateTime = `${end.getFullYear()}-${endMonth}-${end.getDate()}T23:59:59`;
+    const url = `${this.workUrl}/report_by_task?start_datetime=${startDateTime}&end_datetime=${endDateTime}`;
+
+    return this.http.get<WorkReportByTask[]>(url)
       .pipe(
         // catchError(this.handleError('getHeroes', []))
       );

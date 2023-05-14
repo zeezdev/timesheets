@@ -1,5 +1,5 @@
 <div class="mat-app-background basic-container">
-  <h2>Work report by category</h2>
+  <h2>Work report</h2>
 
   <mat-form-field appearance="fill">
     <mat-label>Enter a date range</mat-label>
@@ -29,6 +29,8 @@
 <!--    <mat-error *ngIf="range.controls.end.hasError('matEndDateInvalid')">Invalid end date</mat-error>-->
   </mat-form-field>
 
+  <h3>By category</h3>
+
   <table mat-table [dataSource]="workReport" class="mat-elevation-z8">
 
     <!-- Position Column -->
@@ -51,6 +53,38 @@
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+
+  <h3>By task</h3>
+
+  <table mat-table [dataSource]="workReportByTask" class="mat-elevation-z8">
+
+    <!-- Task ID Column -->
+    <ng-container matColumnDef="task_id">
+      <th mat-header-cell *matHeaderCellDef> Task Id </th>
+      <td mat-cell *matCellDef="let element"> {{element.task_id}} </td>
+    </ng-container>
+
+    <!-- Task Name Column -->
+    <ng-container matColumnDef="task_name">
+      <th mat-header-cell *matHeaderCellDef> Task Name </th>
+      <td mat-cell *matCellDef="let element"> {{element.task_name}} </td>
+    </ng-container>
+
+    <!-- Categoy ID Column -->
+    <ng-container matColumnDef="category_id">
+      <th mat-header-cell *matHeaderCellDef> Category Id </th>
+      <td mat-cell *matCellDef="let element"> {{element.category_id}} </td>
+    </ng-container>
+
+    <!-- Weight Column -->
+    <ng-container matColumnDef="time">
+      <th mat-header-cell *matHeaderCellDef> Time </th>
+      <td mat-cell *matCellDef="let element"> {{element.time}} </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumnsByTask"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumnsByTask;"></tr>
   </table>
 
   <div>

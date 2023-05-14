@@ -6,13 +6,30 @@ from fastapi import FastAPI, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import category_list, task_list, work_get_report_category, work_add, work_get_report_total, work_start as db_work_start, work_stop_current as db_work_stop_current
+from database import (
+    category_list,
+    category_add,
+    category_read,
+    task_list,
+    work_get_report_category,
+    work_add,
+    work_get_report_total,
+    work_start as db_work_start,
+    work_stop_current as db_work_stop_current, category_update, work_get_report_task,
+)
 
 
-class Category(BaseModel):
-    id: int
+class CategoryBase(BaseModel):
     name: str
     description: Union[str, None] = None
+
+
+class CategoryIn(CategoryBase):
+    pass
+
+
+class CategoryOut(CategoryBase):
+    id: int
 
 
 class Task(BaseModel):
@@ -25,6 +42,13 @@ class Task(BaseModel):
 class WorkReportCategory(BaseModel):
     category_id: int
     category_name: str
+    time: float
+
+
+class WorkReportTask(BaseModel):
+    task_id: int
+    task_name: str
+    category_id: int
     time: float
 
 
@@ -55,17 +79,60 @@ router = APIRouter(prefix='/api')
 
 
 @router.get('/categories')
-def read_categories() -> list[Category]:
+def categories_list() -> list[CategoryOut]:
+    """Returns the list of categories"""
     rows = category_list()
-    return [Category(
+    return [CategoryOut(
         id=row[0],
         name=row[1],
         description=row[2],
     ) for row in islice(rows, 1, None)]
 
 
+@router.post('/categories', response_model=CategoryOut)
+def categories_add(category: CategoryIn) -> CategoryOut:
+    """Creates a new category"""
+    result = category_add(name=category.name, description=category.description)
+    rows = category_read(_id=result)
+    rows = islice(rows, 1, None)  # exclude header
+    category = next(rows)
+    return CategoryOut(
+        id=category[0],
+        name=category[1],
+        description=category[2],
+    )
+
+
+@router.get('/categories/{category_id}')
+def categories_retrieve(category_id: int) -> CategoryOut:
+    """Retrieves a category"""
+    rows = category_read(_id=category_id)
+    rows = islice(rows, 1, None)  # exclude header
+    category = next(rows)
+    return CategoryOut(
+        id=category[0],
+        name=category[1],
+        description=category[2],
+    )
+
+
+@router.put('/categories/{category_id}', response_model=CategoryOut)
+def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
+    """Updates a category instance"""
+    category_update(category_id, category.name, category.description)
+    # Retrieve
+    rows = category_read(_id=category_id)
+    rows = islice(rows, 1, None)  # exclude header
+    category = next(rows)
+    return CategoryOut(
+        id=category[0],
+        name=category[1],
+        description=category[2],
+    )
+
+
 @router.get('/tasks')
-def read_tasks() -> list[Task]:
+def tasks_list() -> list[Task]:
     rows = task_list()
     return [Task(
         id=row[0],
@@ -95,6 +162,30 @@ def get_work_report_by_category(
         category_id=row[0],
         category_name=row[1],
         time=row[2],
+    ) for row in islice(rows, 1, None)]
+
+
+@router.get('/work/report_by_task')
+def get_work_report_by_task(
+    start_datetime: Annotated[datetime | None, Body()] = None,
+    end_datetime: Annotated[datetime | None, Body()] = None,
+) -> list[WorkReportTask]:
+    assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
+
+    if not start_datetime and not end_datetime:
+        curr_month = datetime.now().month
+        curr_year = datetime.now().year
+        curr_day = datetime.now().day  # FIXME:
+
+        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
+        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+
+    rows = work_get_report_task(start_datetime, end_datetime)
+    return [WorkReportTask(
+        task_id=row[0],
+        task_name=row[1],
+        category_id=row[2],
+        time=row[3],
     ) for row in islice(rows, 1, None)]
 
 
@@ -151,3 +242,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+
+
+if __name__ == '__main__':  # for debug
+    import uvicorn
+    uvicorn.run(app, host='localhost', port=8874)

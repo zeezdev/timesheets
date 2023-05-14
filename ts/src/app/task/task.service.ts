@@ -7,7 +7,7 @@ import {Injectable} from "@angular/core";
 
 @Injectable()
 export class TaskService {
-  tasksUrl = 'http://localhost:8000/api/tasks';
+  tasksUrl = 'http://localhost:8874/api/tasks';
   // private handleError: HandleError;
 
   constructor(

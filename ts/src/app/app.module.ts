@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { CategoryComponent } from './category/category.component';
 import { TaskComponent } from './task/task.component';
 import { WorkComponent } from './work/work.component';
 import {HttpClientModule} from '@angular/common/http';
@@ -19,13 +18,14 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatBottomSheetModule} from '@angular/material/bottom-sheet';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {MatIconModule} from "@angular/material/icon";
+import {CategoryModule} from "./category/category.module";
+import {MatDialogModule} from "@angular/material/dialog";
 
 @NgModule({
   declarations: [
     AppComponent,
-    CategoryComponent,
     TaskComponent,
-    WorkComponent
+    WorkComponent,
   ],
   imports: [
     BrowserModule,
@@ -34,7 +34,6 @@ import {MatIconModule} from "@angular/material/icon";
     BrowserAnimationsModule,
     FormsModule,
     MatNativeDateModule,
-    //
     MatInputModule,
     MatTableModule,
     MatPaginatorModule,
@@ -46,8 +45,11 @@ import {MatIconModule} from "@angular/material/icon";
     MatDatepickerModule,
     MatDatepickerModule,
     MatIconModule,
+    MatDialogModule,
+    //
+    CategoryModule,
   ],
-  providers: [],
+  providers: [MatDialogModule],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

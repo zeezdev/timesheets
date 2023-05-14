@@ -42,14 +42,14 @@ def execute_statement(statement, *args):
                     header = get_header(cursor)
                     return chain([header], res.fetchall())
                 else:
-                    return res.fetchall()
+                    return cursor.lastrowid  # always == 0 for update
 
 
 # CATEGORY
 
-def category_add(name: str, description: Optional[str] = None) -> None:
+def category_add(name: str, description: Optional[str] = None) -> int:
     res = execute_statement('INSERT INTO main.categories (name, description) VALUES (?, ?)', name, description)
-    print(res)
+    return res
 
 
 def category_remove_by_id(_id: int) -> None:
@@ -62,6 +62,10 @@ def category_update(_id: int, name: str, description: str) -> None:
 
 def category_list() -> list:
     return execute_statement('SELECT id, name, description FROM categories ORDER BY id')
+
+
+def category_read(_id: int) -> tuple:
+    return execute_statement('SELECT id, name, description FROM main.categories WHERE id=?', _id)
 
 
 def category_print_all() -> None:
@@ -172,6 +176,29 @@ def work_get_report_category(start_dt: datetime, end_dt: datetime) -> list:
         'ON (t.category_id = c.id) '
         'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
         'GROUP BY c.id, c.name',
+        start_ts, end_ts,
+    )
+
+
+def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
+    """
+    TODO: rework calculation algorithm
+
+    start_dt:__________:end_td
+                  ^
+           start_timestamp
+    """
+    start_ts = dt_to_ts(start_dt)
+    end_ts = dt_to_ts(end_dt)
+
+    return execute_statement(
+        'SELECT w.task_id AS task_id, t.name AS task_name, t.category_id AS category_id, '
+        'SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
+        'FROM main.work_items w '
+        'INNER JOIN main.tasks t '
+        'ON (w.task_id = t.id) '
+        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
+        'GROUP BY w.task_id, t.name, t.category_id',
         start_ts, end_ts,
     )
 
