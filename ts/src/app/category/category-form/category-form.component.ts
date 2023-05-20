@@ -1,7 +1,6 @@
 import {Component, OnInit} from '@angular/core';
 import {Category} from "../services/category";
 import {ActivatedRoute, ParamMap, Router} from "@angular/router";
-import {Observable, switchMap} from "rxjs";
 import {CategoryService} from "../services/category.service";
 import {NotificationService} from "../../shared/notification.service";
 import {MatSnackBar} from "@angular/material/snack-bar";
@@ -23,9 +22,8 @@ export class CategoryFormComponent implements OnInit {
     private _snackBar: MatSnackBar,
   ) {}
 
-
   getCategory(categoryId: number) {
-    this.service.getCategory(categoryId).subscribe(category => (this.category = category));
+    this.service.getCategory(categoryId).subscribe(category => this.category = category);
   }
 
   ngOnInit() {
@@ -43,7 +41,7 @@ export class CategoryFormComponent implements OnInit {
     if (this.category !== null) {
       this.service.updateCategory(this.category).subscribe(
         () => {
-          console.log('Success');
+          console.info('Category saved.');
           this.notifications.success('Saved');
         }
       );
@@ -52,11 +50,9 @@ export class CategoryFormComponent implements OnInit {
         {id: null, name: form.value.name, description: form.value.description}
       ).subscribe(
         (createdCategory: Category) => {
-          this.router.navigate(['/categories']);
-          // this.router.navigate(['/superheroes', {id: heroId, foo: 'foo'}]);
-          console.info('Created');
+          console.info('Category created');
+          this.router.navigate(['/categories', createdCategory.id]);
           this.notifications.success('Created');
-          // TODO: relocate to the cats list
         }
       );
     }
