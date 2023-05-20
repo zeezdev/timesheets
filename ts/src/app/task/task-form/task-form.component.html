@@ -1,0 +1,37 @@
+<div class="mat-app-background basic-container">
+  <h2>Task #{{ task?.id }}</h2>
+
+  <form class="task-form" #taskForm=ngForm (ngSubmit)="onSubmit(taskForm)">
+    <mat-form-field class="task-full-width" [ngClass]="{'invisible': task == null}">
+      <mat-label for="id">ID:</mat-label>
+      <input
+        matInput id="id"
+        name="id"
+        [(ngModel)]="task && task.id"
+        placeholder="id"
+        [readonly]="true"
+      >
+    </mat-form-field>
+    <mat-form-field class="task-full-width">
+      <mat-label for="name">Name:</mat-label>
+      <input
+        matInput id="name"
+        name="name"
+        [(ngModel)]="task && task.name"
+        placeholder="name"
+      >
+    </mat-form-field>
+    <mat-form-field class="task-full-width">
+      <mat-label for="category_id">Category ID:</mat-label>
+      <input
+        matInput id="category_id"
+        name="category_id"
+        [(ngModel)]="task && task.category_id"
+        placeholder="category ID"
+      >
+    </mat-form-field>
+    <mat-card-actions>
+      <button mat-raised-button type="submit" color="primary">Save</button>
+    </mat-card-actions>
+  </form>
+</div>

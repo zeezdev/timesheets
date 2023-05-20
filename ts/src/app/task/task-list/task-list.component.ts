@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
-import {Task} from './task';
-import {TaskService} from './task.service';
-import {WorkService} from '../work/work.service';
+import {Task} from '../services/task';
+import {TaskService} from '../services/task.service';
+import {WorkService} from '../../work/work.service';
 
 @Component({
   selector: 'app-task',
-  templateUrl: './task.component.html',
+  templateUrl: './task-list.component.html',
   providers: [TaskService, WorkService],
-  styleUrls: ['./task.component.css']
+  styleUrls: ['./task-list.component.css']
 })
-export class TaskComponent implements OnInit {
+export class TaskListComponent implements OnInit {
   tasks: Task[] = [];
   displayedColumns: string[] = ['id', 'name', 'category_id', 'actions'];
   hasActiveTask: boolean = false;

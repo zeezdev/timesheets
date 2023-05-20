@@ -48,8 +48,7 @@ def execute_statement(statement, *args):
 # CATEGORY
 
 def category_add(name: str, description: Optional[str] = None) -> int:
-    res = execute_statement('INSERT INTO main.categories (name, description) VALUES (?, ?)', name, description)
-    return res
+    return execute_statement('INSERT INTO main.categories (name, description) VALUES (?, ?)', name, description)
 
 
 def category_remove_by_id(_id: int) -> None:
@@ -76,8 +75,8 @@ def category_print_all() -> None:
 
 # TASK
 
-def task_add(name: str, category_id: str) -> None:
-    execute_statement('INSERT INTO main.tasks (name, category_id) VALUES (?, ?)', name, category_id)
+def task_add(name: str, category_id: int) -> int:
+    return execute_statement('INSERT INTO main.tasks (name, category_id) VALUES (?, ?)', name, category_id)
 
 
 def task_remove_by_id(_id: int) -> None:
@@ -105,6 +104,18 @@ def task_list() -> list:
         'LEFT JOIN main.work_items AS w '
         'ON (t.id = w.task_id AND w.end_timestamp is NULL)'
         'ORDER BY t.id'
+    )
+
+
+def task_read(_id: int) -> tuple:
+    return execute_statement(
+        'SELECT t.id, t.name, t.category_id, '
+        'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
+        'FROM main.tasks AS t '
+        'LEFT JOIN main.work_items AS w '
+        'ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'WHERE t.id=?',
+        _id,
     )
 
 

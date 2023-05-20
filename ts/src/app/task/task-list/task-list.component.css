@@ -9,3 +9,9 @@ td {
 .basic-container {
   padding: 30px;
 }
+
+.task-add {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+

@@ -17,21 +17,21 @@ export class CategoryService {
     private http: HttpClient,
     // httpErrorHandler: HttpErrorHandler
   ) {
-    // this.handleError = httpErrorHandler.createHandleError('HeroesService');
+    // this.handleError = httpErrorHandler.createHandleError('CategoryService');
   }
 
   /** GET heroes from the server */
   getCategories(): Observable<Category[]> {
     return this.http.get<Category[]>(this.categoriesUrl)
       .pipe(
-        // catchError(this.handleError('getHeroes', []))
+        // catchError(this.handleError('getCategories', []))
       );
   }
 
   getCategory(id: number): Observable<Category> {
     return this.http.get<Category>(`${this.categoriesUrl}/${id}`)
       .pipe(
-        // catchError(this.handleError('getHeroes', []))
+        // catchError(this.handleError('getCategory', []))
       );
   }
 
