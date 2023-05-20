@@ -1,6 +1,6 @@
 export interface Task {
-  id: number;
+  id?: number;
   name: string;
   category_id: number;
-  is_current: number;
+  is_current?: number;
 }

@@ -15,7 +15,7 @@ from database import (
     work_add,
     work_get_report_total,
     work_start as db_work_start,
-    work_stop_current as db_work_stop_current, category_update, work_get_report_task,
+    work_stop_current as db_work_stop_current, category_update, work_get_report_task, task_read, task_update, task_add,
 )
 
 
@@ -32,10 +32,17 @@ class CategoryOut(CategoryBase):
     id: int
 
 
-class Task(BaseModel):
-    id: int
+class TaskBase(BaseModel):
     name: str
     category_id: int
+
+
+class TaskIn(TaskBase):
+    pass
+
+
+class TaskOut(TaskBase):
+    id: int
     is_current: int
 
 
@@ -95,11 +102,11 @@ def categories_add(category: CategoryIn) -> CategoryOut:
     result = category_add(name=category.name, description=category.description)
     rows = category_read(_id=result)
     rows = islice(rows, 1, None)  # exclude header
-    category = next(rows)
+    new_category = next(rows)
     return CategoryOut(
-        id=category[0],
-        name=category[1],
-        description=category[2],
+        id=new_category[0],
+        name=new_category[1],
+        description=new_category[2],
     )
 
 
@@ -132,14 +139,60 @@ def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
 
 
 @router.get('/tasks')
-def tasks_list() -> list[Task]:
+def tasks_list() -> list[TaskOut]:
     rows = task_list()
-    return [Task(
+    return [TaskOut(
         id=row[0],
         name=row[1],
         category_id=row[2],
         is_current=row[3],
     ) for row in islice(rows, 1, None)]
+
+
+@router.post('/tasks', response_model=TaskOut)
+def tasks_add(task: TaskIn) -> TaskOut:
+    """Creates a new task"""
+    result = task_add(name=task.name, category_id=task.category_id)
+
+    rows = task_read(_id=result)
+    rows = islice(rows, 1, None)  # exclude header
+    new_task = next(rows)
+    return TaskOut(
+        id=new_task[0],
+        name=new_task[1],
+        category_id=new_task[2],
+        is_current=new_task[3],
+    )
+
+
+@router.get('/tasks/{task_id}', response_model=TaskOut)
+def tasks_retrieve(task_id: int) -> TaskOut:
+    """Retrieves a task"""
+    rows = task_read(_id=task_id)
+    rows = islice(rows, 1, None)  # exclude header
+    task = next(rows)
+    return TaskOut(
+        id=task[0],
+        name=task[1],
+        category_id=task[2],
+        is_current=task[3],
+    )
+
+
+@router.put('/tasks/{task_id}', response_model=TaskOut)
+def tasks_save(task_id: int, task: TaskOut) -> TaskOut:
+    """Updates a task instance"""
+    task_update(task_id, task.name, task.category_id)
+    # Retrieve
+    rows = task_read(_id=task_id)
+    rows = islice(rows, 1, None)  # exclude header
+    task = next(rows)
+    return TaskOut(
+        id=task[0],
+        name=task[1],
+        category_id=task[2],
+        is_current=task[3],
+    )
 
 
 @router.get('/work/report_by_category')
