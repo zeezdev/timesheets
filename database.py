@@ -2,7 +2,7 @@ import contextlib
 import sqlite3
 from datetime import datetime
 from itertools import chain
-from typing import Optional
+from sqlite3 import Connection
 from pytz import UTC
 
 
@@ -10,9 +10,10 @@ def get_database_name() -> str:
     return 'timesheet.db'
 
 
-def get_connection():
-    database_name = get_database_name()
+def get_connection(database_name: str | None = None) -> Connection:
+    database_name = database_name or get_database_name()
     con = sqlite3.connect(database_name)
+    con.isolation_level = None
     return con
 
 
@@ -47,11 +48,11 @@ def execute_statement(statement, *args):
 
 # CATEGORY
 
-def category_add(name: str, description: Optional[str] = None) -> int:
+def category_create(name: str, description: str | None = None) -> int:
     return execute_statement('INSERT INTO main.categories (name, description) VALUES (?, ?)', name, description)
 
 
-def category_remove_by_id(_id: int) -> None:
+def category_delete(_id: int) -> None:
     execute_statement('DELETE FROM main.categories WHERE id=?', _id)
 
 
@@ -121,7 +122,7 @@ def task_read(_id: int) -> tuple:
 
 # WORK
 
-def work_start(task_id: int, start: Optional[int] = None) -> None:
+def work_start(task_id: int, start: int | None = None) -> None:
     # Validate active work
     res = list(execute_statement('SELECT id FROM main.work_items WHERE end_timestamp IS NULL'))
     if len(res) > 1:

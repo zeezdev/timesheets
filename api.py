@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from database import (
     category_list,
-    category_add,
+    category_create,
     category_read,
     task_list,
     work_get_report_category,
@@ -96,10 +96,10 @@ def categories_list() -> list[CategoryOut]:
     ) for row in islice(rows, 1, None)]
 
 
-@router.post('/categories', response_model=CategoryOut)
+@router.post('/categories', response_model=CategoryOut, status_code=201)
 def categories_add(category: CategoryIn) -> CategoryOut:
     """Creates a new category"""
-    result = category_add(name=category.name, description=category.description)
+    result = category_create(name=category.name, description=category.description)
     rows = category_read(_id=result)
     rows = islice(rows, 1, None)  # exclude header
     new_category = next(rows)
@@ -126,6 +126,7 @@ def categories_retrieve(category_id: int) -> CategoryOut:
 @router.put('/categories/{category_id}', response_model=CategoryOut)
 def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
     """Updates a category instance"""
+    # TODO: use CategoryIn
     category_update(category_id, category.name, category.description)
     # Retrieve
     rows = category_read(_id=category_id)
