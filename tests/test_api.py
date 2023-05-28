@@ -84,3 +84,4 @@ def test_categories_save(db, category):
     result = list(execute_statement('SELECT name, description FROM main.categories WHERE id=?', category_id))
     assert len(result) == 2  # header + row
     assert result[1] == ('NewCategoryName', 'NewCategoryDescription')
+    assert False  # to check CI
