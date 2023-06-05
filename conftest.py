@@ -61,6 +61,45 @@ def categories(request):
 
 
 @pytest.fixture
+def task(category):
+    """Make one task"""
+    category_id = category
+    task_id = None
+    try:
+        task_id = execute_statement(
+            'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+            'TaskName',
+            category,
+        )
+        yield task_id, category
+    finally:
+        execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
+
+
+@pytest.fixture
+def tasks(request, category):
+    assert isinstance(request.param, int) and request.param > 0, \
+        'Incorrect parametrization for the fixture "tasks".'
+
+    category_id = category
+    ids = []
+
+    try:
+        for i in range(request.param):
+            task_id = execute_statement(
+                'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+                f'TaskName#{i}',
+                category_id,
+            )
+            ids.append((task_id, category_id))
+
+        yield ids
+    finally:
+        for task_id, _ in ids:
+            execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
+
+
+@pytest.fixture
 def objects_rollback():
     with ObjectsRollback() as roll:
         yield roll

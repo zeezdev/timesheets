@@ -150,7 +150,7 @@ def tasks_list() -> list[TaskOut]:
     ) for row in islice(rows, 1, None)]
 
 
-@router.post('/tasks', response_model=TaskOut)
+@router.post('/tasks', response_model=TaskOut, status_code=201)
 def tasks_add(task: TaskIn) -> TaskOut:
     """Creates a new task"""
     result = task_add(name=task.name, category_id=task.category_id)
