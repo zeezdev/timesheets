@@ -69,6 +69,7 @@ def category_read(_id: int) -> tuple:
 
 
 def category_print_all() -> None:
+    """Deprecated. TODO: remove"""
     res = execute_statement('SELECT * FROM main.categories ORDER BY id DESC')
     for row in res:
         print(row)
@@ -243,8 +244,8 @@ def migrate():
     name TEXT NOT NULL UNIQUE,
     description TEXT 
     )''')
-    # Tasks
-    #   - add name of task
+    # Tasks TODO:
+    #  - add title of task
     execute_statement('''
     CREATE TABLE IF NOT EXISTS main.tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
