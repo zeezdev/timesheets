@@ -26,6 +26,10 @@ def dt_to_ts(dt: datetime) -> int:
     return round(dt.astimezone(tz=UTC).timestamp())
 
 
+def ts_to_dt(ts: int) -> datetime:
+    return datetime.utcfromtimestamp(ts)
+
+
 def get_now_timestamp() -> int:
     return round(datetime.utcnow().timestamp())
 
@@ -123,14 +127,21 @@ def task_read(_id: int) -> tuple:
 
 # WORK
 
-def work_start(task_id: int, start: int | None = None) -> None:
+def work_read(_id: int) -> tuple:
+    return execute_statement(
+        'SELECT id, task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?',
+        _id,
+    )
+
+
+def work_start(task_id: int, start: int | None = None) -> int:
     # Validate active work
     res = list(execute_statement('SELECT id FROM main.work_items WHERE end_timestamp IS NULL'))
     if len(res) > 1:
         raise Exception('Cannot start work: already started')
 
     start = start or get_now_timestamp()
-    execute_statement('INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?,?)', task_id, start)
+    return execute_statement('INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?,?)', task_id, start)
 
 
 def work_stop_current() -> None:
@@ -259,7 +270,7 @@ def migrate():
     CREATE TABLE IF NOT EXISTS main.work_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id INTEGER,
-    comment TEXT,
+    -- comment TEXT,
     start_timestamp INTEGER NOT NULL,
     end_timestamp INTEGER DEFAULT NULL,
     FOREIGN KEY (task_id)

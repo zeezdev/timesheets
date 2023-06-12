@@ -1,11 +1,21 @@
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
+from pytz import UTC
 
 from api import app
 from database import execute_statement
 
 client = TestClient(app)
+frozen_dt = datetime(2023, 6, 11, 20, 46, 42, 1, tzinfo=UTC)
+frozen_ts = round(frozen_dt.timestamp())
 
+
+#
+# Category API tests
+#
 
 @pytest.mark.parametrize('categories', [3], indirect=True)
 def test_categories_list(db, categories):
@@ -85,6 +95,10 @@ def test_categories_save(db, category):
     assert len(result) == 2  # header + row
     assert result[1] == ('NewCategoryName', 'NewCategoryDescription')
 
+
+#
+# Task API tests
+#
 
 @pytest.mark.parametrize('tasks', [3], indirect=True)
 def test_tasks_list(db, tasks):
@@ -172,3 +186,38 @@ def test_tasks_save(db, task, categories):
     result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == ('NewTaskName', new_category_id)
+
+
+#
+# Work API tests
+#
+
+@freeze_time(frozen_dt)
+def test_work_start(db, task, objects_rollback):
+    # Arrange
+    task_id, category_id = task
+    result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
+    assert len(result) == 2  # header + row
+    assert result[1] == (0,)
+
+    # Act
+    response = client.post(f'/api/work/start', json={'task_id': task_id})
+
+    # Assert
+    assert response.status_code == 201
+    res_json = response.json()
+    work_item_id = res_json['id']
+    objects_rollback.add_for_rollback('work_items', work_item_id)
+    assert res_json == {
+        'id': work_item_id,
+        'task_id': task_id,
+        'start_dt': frozen_dt.strftime('%Y-%m-%dT%H:%M:%S'),
+        'end_dt': None,
+    }
+    result = list(execute_statement(
+        'SELECT id, task_id, start_timestamp, end_timestamp '
+        'FROM main.work_items WHERE task_id=?',
+        task_id
+    ))
+    assert len(result) == 2  # header + row
+    assert result[1] == (work_item_id, task_id, frozen_ts, None)

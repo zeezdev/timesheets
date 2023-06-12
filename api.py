@@ -1,6 +1,6 @@
 from datetime import datetime
 from itertools import islice
-from typing import Union, Optional, Annotated
+from typing import Union, Annotated
 
 from fastapi import FastAPI, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +16,7 @@ from database import (
     work_get_report_total,
     work_start as db_work_start,
     work_stop_current as db_work_stop_current, category_update, work_get_report_task, task_read, task_update, task_add,
+    work_read, ts_to_dt,
 )
 
 
@@ -65,13 +66,17 @@ class WorkReportTotal(BaseModel):
 
 class WorkItem(BaseModel):
     start_dt: datetime
-    end_dt: datetime
+    end_dt: datetime | None
     task_id: int
+
+
+class WorkItemOut(WorkItem):
+    id: int
 
 
 class WorkStart(BaseModel):
     task_id: int
-    start: Optional[int]
+    start: int | None
 
 
 # https://fastapi.tiangolo.com/tutorial/cors/
@@ -274,11 +279,23 @@ def work_items_add(work_item: WorkItem) -> WorkItem:
     return work_item
 
 
-@router.post('/work/start', status_code=200)
-def work_start(work_start: WorkStart) -> None:
+@router.post('/work/start', response_model=WorkItemOut, status_code=201)
+def work_start(work_start: WorkStart) -> WorkItemOut:
     print(work_start)
     # TODO: handle 'Cannot start work: already started'
-    db_work_start(work_start.task_id, start=work_start.start)
+    result = db_work_start(work_start.task_id, start=work_start.start)
+
+    rows = work_read(_id=result)
+    rows = islice(rows, 1, None)  # exclude header
+    started_work_item = next(rows)
+    start_dt = ts_to_dt(started_work_item[2])
+
+    return WorkItemOut(
+        id=started_work_item[0],
+        task_id=started_work_item[1],
+        start_dt=start_dt,
+        end_dt=None,  # end dt of the started work item always is None
+    )
 
 
 @router.post('/work/stop_current', status_code=200)
