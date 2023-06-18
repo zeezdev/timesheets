@@ -1,9 +1,12 @@
 import contextlib
+import logging
 import sqlite3
 from datetime import datetime
 from itertools import chain
 from sqlite3 import Connection
 from pytz import UTC
+
+logger = logging.getLogger(__name__)
 
 
 def get_database_name() -> str:
@@ -23,11 +26,15 @@ def get_cursor(con):
 
 
 def dt_to_ts(dt: datetime) -> int:
-    return round(dt.astimezone(tz=UTC).timestamp())
+    """Align local datetime to UTC and convert to timestamp"""
+    if dt.tzinfo != UTC:
+        dt = dt.astimezone(tz=UTC)
+        dt.replace(tzinfo=None)
+    return round(dt.timestamp())
 
 
 def ts_to_dt(ts: int) -> datetime:
-    return datetime.utcfromtimestamp(ts)
+    return datetime.fromtimestamp(ts)
 
 
 def get_now_timestamp() -> int:
@@ -42,7 +49,11 @@ def execute_statement(statement, *args):
     with contextlib.closing(get_connection()) as con: # auto-closes
         with con: # auto-commits
             with contextlib.closing(get_cursor(con)) as cursor: # auto-closes
-                res = cursor.execute(statement, tuple(args))
+                try:
+                    res = cursor.execute(statement, tuple(args))
+                except sqlite3.InterfaceError:
+                    logger.exception('Failed to execute statement "%s" with args=%s', statement, args)
+
                 if cursor.description is not None:
                     header = get_header(cursor)
                     return chain([header], res.fetchall())

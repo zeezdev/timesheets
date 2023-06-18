@@ -2,15 +2,11 @@ from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from freezegun import freeze_time
-from pytz import UTC
 
 from api import app
 from database import execute_statement
 
 client = TestClient(app)
-frozen_dt = datetime(2023, 6, 11, 20, 46, 42, 1, tzinfo=UTC)
-frozen_ts = round(frozen_dt.timestamp())
 
 
 #
@@ -192,13 +188,13 @@ def test_tasks_save(db, task, categories):
 # Work API tests
 #
 
-@freeze_time(frozen_dt)
-def test_work_start(db, task, objects_rollback):
+def test_work_start(db, frozen_ts, task, objects_rollback):
     # Arrange
     task_id, category_id = task
     result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == (0,)
+    expected_start_dt = datetime.fromtimestamp(frozen_ts).strftime('%Y-%m-%dT%H:%M:%S')
 
     # Act
     response = client.post(f'/api/work/start', json={'task_id': task_id})
@@ -211,7 +207,7 @@ def test_work_start(db, task, objects_rollback):
     assert res_json == {
         'id': work_item_id,
         'task_id': task_id,
-        'start_dt': frozen_dt.strftime('%Y-%m-%dT%H:%M:%S'),
+        'start_dt': expected_start_dt,
         'end_dt': None,
     }
     result = list(execute_statement(
@@ -221,3 +217,22 @@ def test_work_start(db, task, objects_rollback):
     ))
     assert len(result) == 2  # header + row
     assert result[1] == (work_item_id, task_id, frozen_ts, None)
+
+
+def test_work_stop_current(db, frozen_ts, work_item):
+    # Arrange
+    work_item_id, task_id = work_item
+
+    # Act
+    response = client.post('/api/work/stop_current')
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == None
+    # Validate in DB
+    result = list(execute_statement(
+        'SELECT task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?',
+        work_item_id
+    ))
+    assert len(result) == 2  # header + row
+    assert result[1] == (task_id, frozen_ts, frozen_ts)
