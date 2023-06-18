@@ -1,12 +1,27 @@
 import os
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 
-from database import migrate, execute_statement
+from database import migrate, execute_statement, get_now_timestamp
 from tests.utils import ObjectsRollback
 
 DB_NAME = 'test_timesheet.db'
+
+FROZEN_DT = datetime(2023, 6, 11, 23, 30, 59, 123)
+
+
+@pytest.fixture
+def frozen_ts():
+    with freeze_time(FROZEN_DT):
+        local_dt = datetime.now()
+        local_ts = local_dt.timestamp()
+        utc_dt = datetime.utcfromtimestamp(local_ts)
+        utc_ts = utc_dt.timestamp()
+        frozen_ts = round(utc_ts)
+        yield frozen_ts
 
 
 @pytest.fixture(scope='session')
@@ -69,9 +84,9 @@ def task(category):
         task_id = execute_statement(
             'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
             'TaskName',
-            category,
+            category_id,
         )
-        yield task_id, category
+        yield task_id, category_id
     finally:
         execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
 
@@ -97,6 +112,23 @@ def tasks(request, category):
     finally:
         for task_id, _ in ids:
             execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
+
+
+@pytest.fixture
+def work_item(task):
+    task_id, _ = task
+    work_item_id = None
+    ts = get_now_timestamp()
+    try:
+        work_item_id = execute_statement(
+            'INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?, ?)',
+            task_id,
+            ts,
+        )
+
+        yield work_item_id, task_id
+    finally:
+        execute_statement('DELETE FROM main.work_items WHERE id=?', work_item_id)
 
 
 @pytest.fixture
