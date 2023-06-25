@@ -1,18 +1,22 @@
 import contextlib
+import logging
 import sqlite3
 from datetime import datetime
 from itertools import chain
-from typing import Optional
+from sqlite3 import Connection
 from pytz import UTC
+
+logger = logging.getLogger(__name__)
 
 
 def get_database_name() -> str:
     return 'timesheet.db'
 
 
-def get_connection():
-    database_name = get_database_name()
+def get_connection(database_name: str | None = None) -> Connection:
+    database_name = database_name or get_database_name()
     con = sqlite3.connect(database_name)
+    con.isolation_level = None
     return con
 
 
@@ -22,7 +26,15 @@ def get_cursor(con):
 
 
 def dt_to_ts(dt: datetime) -> int:
-    return round(dt.astimezone(tz=UTC).timestamp())
+    """Align local datetime to UTC and convert to timestamp"""
+    if dt.tzinfo != UTC:
+        dt = dt.astimezone(tz=UTC)
+        dt.replace(tzinfo=None)
+    return round(dt.timestamp())
+
+
+def ts_to_dt(ts: int) -> datetime:
+    return datetime.fromtimestamp(ts)
 
 
 def get_now_timestamp() -> int:
@@ -37,7 +49,11 @@ def execute_statement(statement, *args):
     with contextlib.closing(get_connection()) as con: # auto-closes
         with con: # auto-commits
             with contextlib.closing(get_cursor(con)) as cursor: # auto-closes
-                res = cursor.execute(statement, tuple(args))
+                try:
+                    res = cursor.execute(statement, tuple(args))
+                except sqlite3.InterfaceError:
+                    logger.exception('Failed to execute statement "%s" with args=%s', statement, args)
+
                 if cursor.description is not None:
                     header = get_header(cursor)
                     return chain([header], res.fetchall())
@@ -47,11 +63,11 @@ def execute_statement(statement, *args):
 
 # CATEGORY
 
-def category_add(name: str, description: Optional[str] = None) -> int:
+def category_create(name: str, description: str | None = None) -> int:
     return execute_statement('INSERT INTO main.categories (name, description) VALUES (?, ?)', name, description)
 
 
-def category_remove_by_id(_id: int) -> None:
+def category_delete(_id: int) -> None:
     execute_statement('DELETE FROM main.categories WHERE id=?', _id)
 
 
@@ -68,6 +84,7 @@ def category_read(_id: int) -> tuple:
 
 
 def category_print_all() -> None:
+    """Deprecated. TODO: remove"""
     res = execute_statement('SELECT * FROM main.categories ORDER BY id DESC')
     for row in res:
         print(row)
@@ -121,14 +138,21 @@ def task_read(_id: int) -> tuple:
 
 # WORK
 
-def work_start(task_id: int, start: Optional[int] = None) -> None:
+def work_read(_id: int) -> tuple:
+    return execute_statement(
+        'SELECT id, task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?',
+        _id,
+    )
+
+
+def work_start(task_id: int, start: int | None = None) -> int:
     # Validate active work
     res = list(execute_statement('SELECT id FROM main.work_items WHERE end_timestamp IS NULL'))
     if len(res) > 1:
         raise Exception('Cannot start work: already started')
 
     start = start or get_now_timestamp()
-    execute_statement('INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?,?)', task_id, start)
+    return execute_statement('INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?,?)', task_id, start)
 
 
 def work_stop_current() -> None:
@@ -242,8 +266,8 @@ def migrate():
     name TEXT NOT NULL UNIQUE,
     description TEXT 
     )''')
-    # Tasks
-    #   - add name of task
+    # Tasks TODO:
+    #  - add title of task
     execute_statement('''
     CREATE TABLE IF NOT EXISTS main.tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -257,7 +281,7 @@ def migrate():
     CREATE TABLE IF NOT EXISTS main.work_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id INTEGER,
-    comment TEXT,
+    -- comment TEXT,
     start_timestamp INTEGER NOT NULL,
     end_timestamp INTEGER DEFAULT NULL,
     FOREIGN KEY (task_id)

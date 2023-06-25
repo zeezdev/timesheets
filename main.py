@@ -3,7 +3,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 
-from database import migrate, category_add, task_add, category_print_all, category_remove_by_id, \
+from database import migrate, category_create, task_add, category_print_all, category_delete, \
     work_start, work_stop_current, work_add, task_print_all, work_print_all, work_get_report_category, \
     category_update, task_remove_by_id, task_update, work_remove
 
@@ -26,10 +26,10 @@ def _category(category):
     action, *cmd_args = category
     if action == 'add':
         name, description = cmd_args
-        category_add(name, description)
+        category_create(name, description)
     elif action == 'remove':
         _id = cmd_args[0]
-        category_remove_by_id(_id)
+        category_delete(_id)
     elif action == 'update':
         _id, new_name, new_description = cmd_args
         category_update(_id, new_name, new_description)
