@@ -10,7 +10,7 @@ class ObjectsRollback:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        for table, obj_id in self.objects_to_rollback:
+        for table, obj_id in reversed(self.objects_to_rollback):
             execute_statement(f'DELETE FROM {table} WHERE id=?', obj_id)
 
     def add_for_rollback(self, table, obj_id):
