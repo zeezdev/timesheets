@@ -19,6 +19,7 @@ import { AppComponent } from './app.component';
 import { WorkComponent } from './work/work.component';
 import {CategoryModule} from "./category/category.module";
 import {TaskModule} from "./task/task.module";
+import {SharedModule} from "./shared/shared.module";
 
 @NgModule({
   declarations: [
@@ -46,6 +47,7 @@ import {TaskModule} from "./task/task.module";
     //
     CategoryModule,
     TaskModule,
+    SharedModule,
   ],
   providers: [MatDialogModule],
   bootstrap: [AppComponent]

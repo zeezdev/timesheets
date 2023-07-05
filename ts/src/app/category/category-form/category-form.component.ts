@@ -3,7 +3,6 @@ import {Category} from "../services/category";
 import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {CategoryService} from "../services/category.service";
 import {NotificationService} from "../../shared/notification.service";
-import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'app-category-form',
@@ -19,7 +18,6 @@ export class CategoryFormComponent implements OnInit {
     private router: Router,
     private service: CategoryService,
     private notifications: NotificationService,
-    private _snackBar: MatSnackBar,
   ) {}
 
   getCategory(categoryId: number) {
