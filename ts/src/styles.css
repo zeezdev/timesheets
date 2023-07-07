@@ -3,3 +3,14 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* FIXME: these styles aren't applies to snackbar panelClass as expected */
+.blue-snackbar {
+  background: #673ab7;
+}
+.success-snackbar {
+  background-color: #8bc34a;
+}
+.error-snackbar {
+  background: #f44336;
+}

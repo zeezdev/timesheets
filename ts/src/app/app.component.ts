@@ -1,4 +1,7 @@
-import { Component } from '@angular/core';
+import {Component} from '@angular/core';
+
+import {OverworkingWatcher} from './work/services/overworking.service';
+
 
 @Component({
   selector: 'app-root',
@@ -7,4 +10,8 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'TimeSheets';
+
+  constructor(
+    private overWorkingWatcher: OverworkingWatcher,
+  ) { }
 }

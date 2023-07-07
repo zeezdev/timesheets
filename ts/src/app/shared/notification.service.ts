@@ -113,7 +113,7 @@ export class NotificationService {
     message: string,
     action: string,
     className = '',
-    duration = 1000
+    duration = 3000
   ) {
     this.snackBar.open(message, action, {
       duration: duration,
@@ -130,16 +130,12 @@ export interface DialogData {
 @Component({
   template: `
     <h1 mat-dialog-title>{{ data.title }}</h1>
-    <div mat-dialog-content>
+    <mat-dialog-content>
      {{data.message}}
-    </div>
+    </mat-dialog-content>
     <div mat-dialog-actions>
-       <button mat-raised-button color="warn" (click)="onNoClick()">
-        Cancel
-      </button>
-      <button mat-raised-button color="primary" (click)="onYesClick()" cdkFocusInitial>
-        Ok
-      </button>
+      <button mat-raised-button color="warn" (click)="onNoClick()">Cancel</button>
+      <button mat-raised-button color="primary" (click)="onYesClick()" cdkFocusInitial>Ok</button>
     </div>
   `
 })
@@ -161,14 +157,12 @@ export class ConfirmationDialog {
 @Component({
   template: `
     <h1 mat-dialog-title>{{ data.title }}</h1>
-    <div mat-dialog-content>
+    <mat-dialog-content>
      {{data.message}}
-    </div>
-    <div mat-dialog-actions>
-      <button mat-raised-button color="primary" (click)="onYesClick()" cdkFocusInitial>
-        Ok
-      </button>
-    </div>
+    </mat-dialog-content>
+    <mat-dialog-actions>
+      <button mat-raised-button color="primary" (click)="onYesClick()" cdkFocusInitial>Ok</button>
+    </mat-dialog-actions>
   `
 })
 export class AlertDialog {

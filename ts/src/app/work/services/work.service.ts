@@ -5,7 +5,7 @@ import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
 
 
-@Injectable()
+@Injectable({providedIn: 'root'})
 export class WorkService {
   workUrl = 'http://localhost:8874/api/work';
   // private handleError: HandleError;
@@ -83,4 +83,5 @@ export class WorkService {
     return this.http.post(`${this.workUrl}/stop_current`, {});
   }
 }
+
 

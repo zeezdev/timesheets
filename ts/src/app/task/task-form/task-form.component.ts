@@ -3,7 +3,6 @@ import { Task } from '../services/task';
 import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {TaskService} from "../services/task.service";
 import {NotificationService} from "../../shared/notification.service";
-import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'app-task-form',
@@ -18,7 +17,6 @@ export class TaskFormComponent implements OnInit {
     private router: Router,
     private service: TaskService,
     private notifications: NotificationService,
-    private _snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
