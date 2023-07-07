@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {WorkService} from './work.service';
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {map} from 'rxjs/operators';
@@ -14,6 +14,7 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/
 import * as _moment from 'moment';
 // tslint:disable-next-line:no-duplicate-imports
 import {default as _rollupMoment} from 'moment';
+import {AppSettings} from "../app.settings";
 
 const moment = _rollupMoment || _moment;
 
@@ -31,6 +32,7 @@ export const MY_FORMATS = {
   },
 };
 
+// FIXME: may be incorrect if it works more than one day
 const today = new Date();
 const month = today.getMonth();
 const year = today.getFullYear();
@@ -82,7 +84,7 @@ export class WorkComponent implements OnInit {
           return {
             category_id: rep.category_id,
             category_name: rep.category_name,
-            time: (rep.time / 60 / 60 / 8).toFixed(2)
+            time: (rep.time / AppSettings.DAY_SECONDS).toFixed(2)
           };
         })
       )
@@ -99,7 +101,7 @@ export class WorkComponent implements OnInit {
             task_id: rep.task_id,
             task_name: rep.task_name,
             category_id: rep.category_id,
-            time: (rep.time / 60 / 60 / 8).toFixed(2)
+            time: (rep.time / AppSettings.DAY_SECONDS).toFixed(2)
           };
         })
       )
@@ -111,7 +113,7 @@ export class WorkComponent implements OnInit {
   getWorkReportTotal(start: Date, end: Date) {
     this.workService.getWorkReportTotal(start, end).pipe(
       map((report: WorkReportTotal) => {
-        return (report.time / 60 / 60 / 8).toFixed(2);
+        return (report.time / AppSettings.DAY_SECONDS).toFixed(2);
       })
     ).subscribe(
       workTotal => {this.workTotal = workTotal}
@@ -123,7 +125,7 @@ export class WorkComponent implements OnInit {
       const start = new Date(this.range.value.start);
       const end = new Date(this.range.value.end);
 
-      console.log(`start=${start}, end=${end}`);
+      console.log(`Date range changed: start=${start}, end=${end}`);
       this.getWorkReportByCategory(start, end);
       this.getWorkReportByTask(start, end);
       this.getWorkReportTotal(start, end);
