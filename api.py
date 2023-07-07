@@ -90,6 +90,22 @@ origins = [
 router = APIRouter(prefix='/api')
 
 
+def get_default_report_datetime_range() -> tuple[datetime, datetime]:
+    """
+    Makes range for the last month, from start of 21th to end of 20th.
+
+    FIXME: make start day configurable
+    """
+    # Get report for the last month
+    now = datetime.now()
+    curr_month = now.month
+    curr_year = now.year
+    start = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
+    end = datetime(curr_year, curr_month, 20, 23, 59, 59)
+
+    return start, end
+
+
 @router.get('/categories')
 def categories_list() -> list[CategoryOut]:
     """Returns the list of categories"""
@@ -208,13 +224,8 @@ def get_work_report_by_category(
 ) -> list[WorkReportCategory]:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
-    if not start_datetime and not end_datetime:
-        curr_month = datetime.now().month
-        curr_year = datetime.now().year
-        curr_day = datetime.now().day  # FIXME:
-
-        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
-        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+    if start_datetime is None and end_datetime is None:
+        start_datetime, end_datetime = get_default_report_datetime_range()
 
     rows = work_get_report_category(start_datetime, end_datetime)
     return [WorkReportCategory(
@@ -231,13 +242,8 @@ def get_work_report_by_task(
 ) -> list[WorkReportTask]:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
-    if not start_datetime and not end_datetime:
-        curr_month = datetime.now().month
-        curr_year = datetime.now().year
-        curr_day = datetime.now().day  # FIXME:
-
-        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
-        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+    if start_datetime is None and end_datetime is None:
+        start_datetime, end_datetime = get_default_report_datetime_range()
 
     rows = work_get_report_task(start_datetime, end_datetime)
     return [WorkReportTask(
@@ -255,14 +261,8 @@ def get_work_report_total(
 ) -> WorkReportTotal:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
-    if not start_datetime and not end_datetime:
-        # Get report for the last month
-        curr_month = datetime.now().month
-        curr_year = datetime.now().year
-        curr_day = datetime.now().day  # FIXME:
-
-        start_datetime = datetime(curr_year, curr_month-1, 21, 0, 0, 0)
-        end_datetime = datetime(curr_year, curr_month, 20, 23, 59, 59)
+    if start_datetime is None and end_datetime is None:
+        start_datetime, end_datetime = get_default_report_datetime_range()
 
     rows = work_get_report_total(start_datetime, end_datetime)
     rows = islice(rows, 1, None)
