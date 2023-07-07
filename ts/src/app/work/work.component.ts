@@ -1,11 +1,11 @@
 import {Component, OnInit} from '@angular/core';
-import {WorkService} from './work.service';
-import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {map} from 'rxjs/operators';
 import {FormGroup, FormControl} from '@angular/forms';
 import {MomentDateAdapter, MAT_MOMENT_DATE_ADAPTER_OPTIONS} from '@angular/material-moment-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
-
+import {AppSettings} from "../app.settings";
+import {WorkService} from "./services/work.service";
+import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from "./services/work";
 
 // Depending on whether rollup is used, moment needs to be imported differently.
 // Since Moment.js doesn't have a default export, we normally need to import using the `* as`
@@ -14,7 +14,6 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/
 import * as _moment from 'moment';
 // tslint:disable-next-line:no-duplicate-imports
 import {default as _rollupMoment} from 'moment';
-import {AppSettings} from "../app.settings";
 
 const moment = _rollupMoment || _moment;
 

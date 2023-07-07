@@ -4,8 +4,8 @@ import {interval, Observable} from 'rxjs';
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
 import {map} from "rxjs/operators";
-import {AppSettings} from "../app.settings";
-import {pad} from "../shared/utils";
+import {pad} from "../../shared/utils";
+import {AppSettings} from "../../app.settings";
 
 
 @Injectable({providedIn: 'root'})

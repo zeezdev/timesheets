@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import {OverworkingWatcher} from "./work/work.service";
+import {OverworkingWatcher} from "./work/services/work.service";
+
 
 @Component({
   selector: 'app-root',
