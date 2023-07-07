@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import {OverworkingWatcher} from "./work/services/work.service";
+import {Component} from '@angular/core';
+
+import {OverworkingWatcher} from './work/services/overworking.service';
 
 
 @Component({
