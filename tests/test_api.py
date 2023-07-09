@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from api import app
 from database import execute_statement, dt_to_ts
+from tests.const import FROZEN_DT, DT_FORMAT
 
 client = TestClient(app)
 
@@ -194,10 +195,10 @@ def test_work_start(db, frozen_ts, task, objects_rollback):
     result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == (0,)
-    expected_start_dt = datetime.fromtimestamp(frozen_ts).strftime('%Y-%m-%dT%H:%M:%S')
+    expected_start_dt = FROZEN_DT.strftime(DT_FORMAT)
 
     # Act
-    response = client.post(f'/api/work/start', json={'task_id': task_id})
+    response = client.post('/api/work/start', json={'task_id': task_id})
 
     # Assert
     assert response.status_code == 201
@@ -238,9 +239,9 @@ def test_work_stop_current(db, frozen_ts, work_item):
     assert result[1] == (task_id, frozen_ts, frozen_ts)
 
 
-def add_work_item(task_id: int, start_dt: datetime, end_dt: datetime):
+def add_work_item(task_id: int, start_dt: datetime, end_dt: datetime | None) -> int:
     start_ts = dt_to_ts(start_dt)
-    end_ts = dt_to_ts(end_dt)
+    end_ts = end_dt and dt_to_ts(end_dt)
     work_item_id = execute_statement(
         'INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?, ?, ?)',
         task_id,
@@ -290,8 +291,8 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     )
     objects_rollback.add_for_rollback('tasks', task3_c2_id)
 
-    start_dt_str=datetime(2023, 3, 15).strftime('%Y-%m-%dT%H:%M:%S')
-    end_dt_str=datetime(2023, 4, 15, 23, 59, 59).strftime('%Y-%m-%dT%H:%M:%S')
+    start_dt_str=datetime(2023, 3, 15).strftime(DT_FORMAT)
+    end_dt_str=datetime(2023, 4, 15, 23, 59, 59, 999999).strftime(DT_FORMAT)
     # Work items before requested datetime range
     wi_id = add_work_item(task1_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
     objects_rollback.add_for_rollback('work_items', wi_id)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import logging
 from argparse import ArgumentParser
 from datetime import datetime
 
@@ -88,7 +88,7 @@ def _work(work):
 
 
 def work(args):
-    print(args)
+    logging.info(args)
 
     if args.category:
         if any([args.task, args.work]):
@@ -148,6 +148,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # app = TimeSheetApp()
-    # app.run()
+    logging.basicConfig(level=logging.INFO)
     main()

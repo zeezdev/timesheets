@@ -4,7 +4,6 @@ import sqlite3
 from datetime import datetime
 from itertools import chain
 from sqlite3 import Connection
-from pytz import UTC
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +25,6 @@ def get_cursor(con):
 
 
 def dt_to_ts(dt: datetime) -> int:
-    """Align local datetime to UTC and convert to timestamp"""
-    if dt.tzinfo != UTC:
-        dt = dt.astimezone(tz=UTC)
-        dt.replace(tzinfo=None)
     return round(dt.timestamp())
 
 
@@ -38,7 +33,7 @@ def ts_to_dt(ts: int) -> datetime:
 
 
 def get_now_timestamp() -> int:
-    return round(datetime.utcnow().timestamp())
+    return dt_to_ts(datetime.now())
 
 
 def get_header(cursor) -> tuple[str]:
@@ -98,9 +93,6 @@ def task_add(name: str, category_id: int) -> int:
 
 def task_remove_by_id(_id: int) -> None:
     execute_statement('DELETE FROM main.tasks WHERE id=?', _id)
-
-# def task_remove_by_name(name: str, category_id) -> None:
-#     execute_statement('DELETE FROM main.tasks WHERE name=? AND category_id=?', name, category_id)
 
 
 def task_update(_id: int, name: str, category_id: int) -> None:
@@ -260,6 +252,8 @@ def work_get_report_total(start_dt: datetime, end_dt: datetime) -> list:
 # DATABASE UTILITY
 
 def migrate():
+    logger.info('migrate')
+
     execute_statement('''
     CREATE TABLE IF NOT EXISTS main.categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

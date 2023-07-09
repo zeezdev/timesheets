@@ -31,4 +31,3 @@ websockets==10.4
 # Dev
 pytest==7.2.1
 httpx==0.24.1
-freezegun==1.2.2
