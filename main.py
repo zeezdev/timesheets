@@ -22,6 +22,14 @@ def _work_print_report_category(start_dt: datetime, end_dt: datetime) -> None:
         print(f'{category_id}, {category_name}, {time_days}')
 
 
+def _migrate(mgrt):
+    name: str = mgrt[0] if mgrt else None
+    if name and not name.isnumeric():
+        raise ValueError(f'The name of migration must be a number from 001 to 999, but given: {name}')
+
+    migrate(name)
+
+
 def _category(category):
     action, *cmd_args = category
     if action == 'add':
@@ -90,14 +98,16 @@ def _work(work):
 def work(args):
     logging.info(args)
 
-    if args.category:
-        if any([args.task, args.work]):
+    if args.migrate is not None:
+        _migrate(args.migrate)
+    elif args.category is not None:
+        if any([args.task is not None, args.work is not None]):
             raise Exception('--category is not compatible with --task and/or --work')
 
         _category(args.category)
-    elif args.task:
+    elif args.task is not None:
         _task(args.task)
-    elif args.work:
+    elif args.work is not None:
         _work(args.work)
 
 
@@ -140,10 +150,13 @@ def main():
     """
     parser.add_argument('-w', '--work', nargs='+', help=work_help)
 
+    migrate_help = """
+    [name (for example: 001)]
+    """
+    parser.add_argument('-m', '--migrate', nargs='*', help=migrate_help)
+
     args = parser.parse_args()
 
-    # con = sqlite3.connect('timesheet.db')
-    migrate()
     work(args)
 
 

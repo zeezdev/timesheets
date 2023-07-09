@@ -1,8 +1,10 @@
 import contextlib
+import importlib.util
 import logging
 import sqlite3
 from datetime import datetime
 from itertools import chain
+from pathlib import Path
 from sqlite3 import Connection
 
 logger = logging.getLogger(__name__)
@@ -251,7 +253,29 @@ def work_get_report_total(start_dt: datetime, end_dt: datetime) -> list:
 
 # DATABASE UTILITY
 
-def migrate():
+
+def _execute_migration(name: str) -> None:
+    root = Path(__file__).resolve().parent
+    migrations = root / 'migrations'
+    if not migrations.exists():
+        raise FileNotFoundError('"migrations" folder does not exist')
+
+    migration_files = list(migrations.glob(f'{name}_[a-z-]*.py'))
+    if not migration_files:
+        raise ValueError(f'Migration file with name "{name}" not found in: {migrations}')
+    elif len(migration_files) > 1:
+        raise ValueError(f'Multiple migration files for name "{name}": {migration_files}')
+
+    migration_file = migration_files[0]
+
+    logger.info(f'Apply migration "{name}" from file: {migration_file}')
+
+    spec = importlib.util.spec_from_file_location(f'migration_{name}', str(migration_file))
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+
+def migrate(name: str | None = None) -> None:
     logger.info('migrate')
 
     execute_statement('''
@@ -282,3 +306,6 @@ def migrate():
         REFERENCES tasks(id)
             ON DELETE CASCADE ON UPDATE NO ACTION
     )''')
+
+    if name is not None:
+        _execute_migration(name)
