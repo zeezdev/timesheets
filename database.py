@@ -2,7 +2,8 @@ import contextlib
 import importlib.util
 import logging
 import sqlite3
-from datetime import datetime
+import time
+from datetime import datetime, tzinfo, timezone
 from itertools import chain
 from pathlib import Path
 from sqlite3 import Connection
@@ -26,16 +27,37 @@ def get_cursor(con):
     return cur
 
 
+def get_local_tz() -> tzinfo:
+    return datetime.now().astimezone().tzinfo
+
+
 def dt_to_ts(dt: datetime) -> int:
-    return round(dt.timestamp())
+    """Convert a given datetime into the timestamp in UTC TZ."""
+    if dt.tzinfo is None:
+        # If dt is a naive (no tzinfo provided) then set up a local tz
+        dt_without_tz = dt
+        dt_with_tz = dt.replace(tzinfo=get_local_tz())
+    else:
+        dt_with_tz = dt
+        dt_without_tz = dt.replace(tzinfo=None)
+
+    utc_dt = dt_without_tz - dt_with_tz.utcoffset()
+    timestamp = time.mktime(utc_dt.timetuple())
+    return int(timestamp)
 
 
 def ts_to_dt(ts: int) -> datetime:
-    return datetime.fromtimestamp(ts)
+    """Convert UTC ts to local dt."""
+    return datetime.fromtimestamp(ts).replace(tzinfo=timezone.utc).astimezone()
 
 
 def get_now_timestamp() -> int:
-    return dt_to_ts(datetime.now())
+    """Return current timestamp in UTC TZ."""
+    local_dt = datetime.now()
+    utc_dt = local_dt - local_dt.astimezone().utcoffset()
+    timestamp = time.mktime(utc_dt.timetuple())
+    # TODO: utctimetuple ?
+    return int(timestamp)
 
 
 def get_header(cursor) -> tuple[str]:

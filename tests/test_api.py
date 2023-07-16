@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import app
-from database import execute_statement, dt_to_ts
-from tests.const import FROZEN_DT, DT_FORMAT
+from database import execute_statement, dt_to_ts, ts_to_dt
+from tests.const import FROZEN_DT, LOCAL_TZ, FROZEN_TS
 
 client = TestClient(app)
 
@@ -195,7 +195,7 @@ def test_work_start(db, frozen_ts, task, objects_rollback):
     result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == (0,)
-    expected_start_dt = FROZEN_DT.strftime(DT_FORMAT)
+    expected_start_dt = ts_to_dt(FROZEN_TS).replace(microsecond=0).isoformat()
 
     # Act
     response = client.post('/api/work/start', json={'task_id': task_id})
@@ -291,8 +291,8 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     )
     objects_rollback.add_for_rollback('tasks', task3_c2_id)
 
-    start_dt_str=datetime(2023, 3, 15).strftime(DT_FORMAT)
-    end_dt_str=datetime(2023, 4, 15, 23, 59, 59, 999999).strftime(DT_FORMAT)
+    start_dt_str=datetime(2023, 3, 15, tzinfo=LOCAL_TZ).isoformat()
+    end_dt_str=datetime(2023, 4, 15, 23, 59, 59, 999999, tzinfo=LOCAL_TZ).isoformat()
     # Work items before requested datetime range
     wi_id = add_work_item(task1_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
     objects_rollback.add_for_rollback('work_items', wi_id)
