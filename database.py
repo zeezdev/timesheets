@@ -255,21 +255,33 @@ def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
 
 
 def work_get_report_total(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? ',
-        start_ts, end_ts,
+        'SELECT COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT '
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 
