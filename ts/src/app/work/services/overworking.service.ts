@@ -12,7 +12,7 @@ export class OverworkingWatcher {
 
   private getAlertKey(today: Date, percent: number): string {
     const percentStr = Math.trunc(percent).toString();
-    const todayStr = `${today.getFullYear()}-${pad(today.getMonth())}-${pad(today.getDay())}`;
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth())}-${pad(today.getDate())}`;
     return `overworkingwatcher-${todayStr}-${percentStr}`;
   }
 

@@ -68,6 +68,7 @@ export class WorkComponent implements OnInit {
   constructor(private workService: WorkService) { }
 
   ngOnInit() {
+    // TODO: send Date with TZ info
     const start = new Date(this.range.value.start);
     const end = new Date(this.range.value.end);
 
@@ -121,6 +122,7 @@ export class WorkComponent implements OnInit {
 
   dateRangeChange(dateRangeStart: HTMLInputElement, dateRangeEnd: HTMLInputElement) {
     if (this.range.value.start && this.range.value.end) {
+      // TODO: send Date with TZ info
       const start = new Date(this.range.value.start);
       const end = new Date(this.range.value.end);
 

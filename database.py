@@ -1,10 +1,12 @@
 import contextlib
+import importlib.util
 import logging
 import sqlite3
-from datetime import datetime
+import time
+from datetime import datetime, tzinfo, timezone
 from itertools import chain
+from pathlib import Path
 from sqlite3 import Connection
-from pytz import UTC
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +27,37 @@ def get_cursor(con):
     return cur
 
 
+def get_local_tz() -> tzinfo:
+    return datetime.now().astimezone().tzinfo
+
+
 def dt_to_ts(dt: datetime) -> int:
-    """Align local datetime to UTC and convert to timestamp"""
-    if dt.tzinfo != UTC:
-        dt = dt.astimezone(tz=UTC)
-        dt.replace(tzinfo=None)
-    return round(dt.timestamp())
+    """Convert a given datetime into the timestamp in UTC TZ."""
+    if dt.tzinfo is None:
+        # If dt is a naive (no tzinfo provided) then set up a local tz
+        dt_without_tz = dt
+        dt_with_tz = dt.replace(tzinfo=get_local_tz())
+    else:
+        dt_with_tz = dt
+        dt_without_tz = dt.replace(tzinfo=None)
+
+    utc_dt = dt_without_tz - dt_with_tz.utcoffset()
+    timestamp = time.mktime(utc_dt.timetuple())
+    return int(timestamp)
 
 
 def ts_to_dt(ts: int) -> datetime:
-    return datetime.fromtimestamp(ts)
+    """Convert UTC ts to local dt."""
+    return datetime.fromtimestamp(ts).replace(tzinfo=timezone.utc).astimezone()
 
 
 def get_now_timestamp() -> int:
-    return round(datetime.utcnow().timestamp())
+    """Return current timestamp in UTC TZ."""
+    local_dt = datetime.now()
+    utc_dt = local_dt - local_dt.astimezone().utcoffset()
+    timestamp = time.mktime(utc_dt.timetuple())
+    # TODO: utctimetuple ?
+    return int(timestamp)
 
 
 def get_header(cursor) -> tuple[str]:
@@ -98,9 +117,6 @@ def task_add(name: str, category_id: int) -> int:
 
 def task_remove_by_id(_id: int) -> None:
     execute_statement('DELETE FROM main.tasks WHERE id=?', _id)
-
-# def task_remove_by_name(name: str, category_id) -> None:
-#     execute_statement('DELETE FROM main.tasks WHERE name=? AND category_id=?', name, category_id)
 
 
 def task_update(_id: int, name: str, category_id: int) -> None:
@@ -191,75 +207,132 @@ def work_print_all():
 
 
 def work_get_report_category(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT c.id AS category_id, c.name AS category_name, '
-        'SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'INNER JOIN main.tasks t '
-        'ON (w.task_id = t.id) '
-        'INNER JOIN main.categories c '
-        'ON (t.category_id = c.id) '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
-        'GROUP BY c.id, c.name',
-        start_ts, end_ts,
+        'SELECT t.category_id, c.name AS catrgory_name,'
+        'COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT wi.task_id,'
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww '
+        'INNER JOIN main.tasks t ON (ww.task_id = t.id) '
+        'INNER JOIN main.categories c ON (t.category_id = c.id) '
+        'GROUP BY t.category_id, c.name',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 
 def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT w.task_id AS task_id, t.name AS task_name, t.category_id AS category_id, '
-        'SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'INNER JOIN main.tasks t '
-        'ON (w.task_id = t.id) '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
-        'GROUP BY w.task_id, t.name, t.category_id',
-        start_ts, end_ts,
+        'SELECT ww.task_id, t.name AS task_name, t.category_id,'
+        'COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT wi.task_id,'
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww '
+        'INNER JOIN main.tasks t ON (ww.task_id = t.id) '
+        'GROUP BY ww.task_id, t.name, t.category_id',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 
 def work_get_report_total(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? ',
-        start_ts, end_ts,
+        'SELECT COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT '
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 
 # DATABASE UTILITY
 
-def migrate():
+
+def _execute_migration(name: str) -> None:
+    root = Path(__file__).resolve().parent
+    migrations = root / 'migrations'
+    if not migrations.exists():
+        raise FileNotFoundError('"migrations" folder does not exist')
+
+    migration_files = list(migrations.glob(f'{name}_[a-z-]*.py'))
+    if not migration_files:
+        raise ValueError(f'Migration file with name "{name}" not found in: {migrations}')
+    elif len(migration_files) > 1:
+        raise ValueError(f'Multiple migration files for name "{name}": {migration_files}')
+
+    migration_file = migration_files[0]
+
+    logger.info(f'Apply migration "{name}" from file: {migration_file}')
+
+    spec = importlib.util.spec_from_file_location(f'migration_{name}', str(migration_file))
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+
+def migrate(name: str | None = None) -> None:
+    logger.info('migrate')
+
     execute_statement('''
     CREATE TABLE IF NOT EXISTS main.categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -288,3 +361,6 @@ def migrate():
         REFERENCES tasks(id)
             ON DELETE CASCADE ON UPDATE NO ACTION
     )''')
+
+    if name is not None:
+        _execute_migration(name)

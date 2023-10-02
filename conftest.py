@@ -1,27 +1,27 @@
 import os
-from datetime import datetime
-from unittest.mock import patch
+import time
 
 import pytest
-from freezegun import freeze_time
-
+from unittest.mock import patch
 from database import migrate, execute_statement, get_now_timestamp
+from tests.const import FROZEN_LOCAL_DT
 from tests.utils import ObjectsRollback
 
 DB_NAME = 'test_timesheet.db'
 
-FROZEN_DT = datetime(2023, 6, 11, 23, 30, 59, 123)
-
 
 @pytest.fixture
 def frozen_ts():
-    with freeze_time(FROZEN_DT):
-        local_dt = datetime.now()
-        local_ts = local_dt.timestamp()
-        utc_dt = datetime.utcfromtimestamp(local_ts)
-        utc_ts = utc_dt.timestamp()
-        frozen_ts = round(utc_ts)
-        yield frozen_ts
+    """Mock `database.get_now_timestamp` with a return value == FROZEN_TS."""
+    local_dt = FROZEN_LOCAL_DT
+    utc_dt = local_dt - local_dt.astimezone().utcoffset()
+    timestamp = time.mktime(utc_dt.timetuple())
+    # TODO: utctimetuple ?
+    ts = int(timestamp)
+
+    with patch('database.get_now_timestamp', return_value=ts), \
+            patch('conftest.get_now_timestamp', return_value=ts):
+        yield ts
 
 
 @pytest.fixture(scope='session')

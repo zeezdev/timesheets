@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 
 from api import app
-from database import execute_statement, dt_to_ts
+from database import execute_statement, dt_to_ts, ts_to_dt
+from tests.const import LOCAL_TZ, FROZEN_LOCAL_DT
 
 client = TestClient(app)
 
@@ -194,10 +195,10 @@ def test_work_start(db, frozen_ts, task, objects_rollback):
     result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == (0,)
-    expected_start_dt = datetime.fromtimestamp(frozen_ts).strftime('%Y-%m-%dT%H:%M:%S')
+    expected_start_dt = ts_to_dt(frozen_ts).replace(microsecond=0).isoformat()
 
     # Act
-    response = client.post(f'/api/work/start', json={'task_id': task_id})
+    response = client.post('/api/work/start', json={'task_id': task_id})
 
     # Assert
     assert response.status_code == 201
@@ -238,9 +239,9 @@ def test_work_stop_current(db, frozen_ts, work_item):
     assert result[1] == (task_id, frozen_ts, frozen_ts)
 
 
-def add_work_item(task_id: int, start_dt: datetime, end_dt: datetime):
+def add_work_item(task_id: int, start_dt: datetime, end_dt: datetime | None) -> int:
     start_ts = dt_to_ts(start_dt)
-    end_ts = dt_to_ts(end_dt)
+    end_ts = end_dt and dt_to_ts(end_dt)
     work_item_id = execute_statement(
         'INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?, ?, ?)',
         task_id,
@@ -290,8 +291,8 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     )
     objects_rollback.add_for_rollback('tasks', task3_c2_id)
 
-    start_dt_str=datetime(2023, 3, 15).strftime('%Y-%m-%dT%H:%M:%S')
-    end_dt_str=datetime(2023, 4, 15, 23, 59, 59).strftime('%Y-%m-%dT%H:%M:%S')
+    start_dt_str=datetime(2023, 3, 15, tzinfo=LOCAL_TZ).isoformat()
+    end_dt_str=datetime(2023, 4, 16, tzinfo=LOCAL_TZ).isoformat()
     # Work items before requested datetime range
     wi_id = add_work_item(task1_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
     objects_rollback.add_for_rollback('work_items', wi_id)
@@ -424,3 +425,563 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     assert res_json == {
         'time': (10.0 * 60 * 60) + (10.0 * 60 * 60) + (10.0 * 60 * 60),  # task1 + task2 + task3
     }
+
+
+def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started in the range and continuous inside the range (till now).
+    Expected EOW (end of work) is `now`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item (not present in this case).
+    `now` - current timestamp.
+
+    sr:______________:er
+         ^.......
+        swi     ^
+               now
+                |
+         (expected EOW)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    work_start = FROZEN_LOCAL_DT - timedelta(hours=2)
+    wi_id = add_work_item(task1_c1_id, work_start, None)  # 2 hours before the frozen now
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report: today - tomorrow
+    start_dt_str = today.isoformat()
+    end_dt_str = tomorrow.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == {'time': 2.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 2.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 2.0 * 60 * 60,
+    }]
+
+
+def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started in the report range and continuous outside the range (till now).
+    Expected EOW (end of work) is `er`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item (not present in this case).
+    `now` - current timestamp.
+
+    sr:______________:er
+         ^...................
+        swi          |      ^
+                     |     now
+                     |
+               (expected EOW)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    yesterday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    work_start = today - timedelta(hours=4)
+    wi_id = add_work_item(task1_c1_id, work_start, None)  # 4 hours before today
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report: yesterday - today
+    start_dt_str = yesterday.isoformat()
+    end_dt_str = today.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
+
+
+def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started in the report range and ended outside the range (before now).
+    Expected EOW (end of work) is `er`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item.
+    `now` - current timestamp.
+
+    sr:______________:er
+         ^..................^....
+        swi          |     ewi  ^
+                     |         now
+                     |
+          (expected end of work)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    yesteday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    work_start = today - timedelta(hours=4)
+    work_end = today + timedelta(hours=2)
+    wi_id = add_work_item(task1_c1_id, work_start, work_end)  # 6 hours
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report: yesterday - today
+    start_dt_str = yesteday.isoformat()
+    end_dt_str = today.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    # We expect 4 hours in total for yesterday
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
+
+
+def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started out the report range (before) and ended in the range.
+    Expected SOW (start of work) is `sr`.
+    Expected EOW (end of work) is `now`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item.
+    `now` - current timestamp.
+
+          sr:______________________:er
+     ^.....|......^.........
+    swi    |     ewi       ^
+           |              now
+           |
+    (expected SOW)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    work_start = today - timedelta(hours=3)
+    work_end = today + timedelta(hours=4)
+    assert work_end < FROZEN_LOCAL_DT
+    wi_id = add_work_item(task1_c1_id, work_start, work_end)
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report for today
+    start_dt_str = today.isoformat()
+    end_dt_str = tomorrow.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    # We expect 4 hours in total for yesterday
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
+
+
+def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started out the report range (before) and continuous in the range.
+    Expected SOW (start of work) is `sr`.
+    Expected EOW (end of work) is `now`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item (not present in this case).
+    `now` - current timestamp.
+
+          sr:__________________:er
+     ^.....|..............
+    swi    |             ^
+           |            now
+           |             |
+    (expected SOW) (expected EOW)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    work_start = today - timedelta(hours=3)
+    wi_id = add_work_item(task1_c1_id, work_start, None)
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report for today
+    start_dt_str = today.isoformat()
+    end_dt_str = tomorrow.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    expected_time = (FROZEN_LOCAL_DT - today).seconds
+
+    # Assert
+    assert response.status_code == 200
+    # We expect (start from today till now) in total for yesterday
+    assert response.json() == {'time': expected_time}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    # We expect (start from today till now) in total for yesterday
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': expected_time,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': expected_time,
+    }]
+
+
+def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback):
+    """
+    Case: work started out the report range (before) and ended outside the range (after).
+    Expected SOW (start of work) is `sr`.
+    Expected EOW (end of work) is `er`.
+
+    `sr` - start of the range.
+    `er` - end of the range.
+    `swi` - start of the work item.
+    `ewi` - end of the work item.
+    `now` - current timestamp.
+
+          sr:______________:er
+    ^......|................|.....^.......
+    swi    |                |    ewi     ^
+           |                |           now
+     (expected SOW)   (expected EOW)
+    """
+
+    # Arrange
+    category1_id = execute_statement(
+        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
+        'CategoryName1',
+        'CategoryDescription1',
+    )
+    objects_rollback.add_for_rollback('categories', category1_id)
+    task1_c1_id = execute_statement(
+        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
+        'TaskName1',
+        category1_id,
+    )
+    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    local_dt = FROZEN_LOCAL_DT - timedelta(days=1)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday = today - timedelta(days=1)
+    work_start = yesterday - timedelta(hours=3)
+    work_end = today + timedelta(hours=3)
+    wi_id = add_work_item(task1_c1_id, work_start, work_end)
+    objects_rollback.add_for_rollback('work_items', wi_id)
+
+    # Report for yesterday
+    start_dt_str = yesterday.isoformat()
+    end_dt_str = today.isoformat()
+
+    # Act
+    response = client.get(
+        '/api/work/report_total',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    # We expect 24 hours in total for yesterday
+    assert response.json() == {'time': 24.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 24.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 24.0 * 60 * 60,
+    }]

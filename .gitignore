@@ -1,8 +1,6 @@
+.pytest_cache/
+__pycache__/
 /timesheet.db*
-/.pytest_cache/
-/__pycache__/
-/venv/
-/tests/__pycache__/
 
 #
 # For ts dir
@@ -14,7 +12,9 @@
 /out-tsc
 
 # dependencies
-/**/node_modules
+/node_modules/
+/ts/node_modules/
+/venv/
 
 # IDEs and editors
 /.idea
