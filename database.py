@@ -207,50 +207,71 @@ def work_print_all():
 
 
 def work_get_report_category(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT c.id AS category_id, c.name AS category_name, '
-        'SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'INNER JOIN main.tasks t '
-        'ON (w.task_id = t.id) '
-        'INNER JOIN main.categories c '
-        'ON (t.category_id = c.id) '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
-        'GROUP BY c.id, c.name',
-        start_ts, end_ts,
+        'SELECT t.category_id, c.name AS catrgory_name,'
+        'COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT wi.task_id,'
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww '
+        'INNER JOIN main.tasks t ON (ww.task_id = t.id) '
+        'INNER JOIN main.categories c ON (t.category_id = c.id) '
+        'GROUP BY t.category_id, c.name',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 
 def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
-    """
-    TODO: rework calculation algorithm
-
-    start_dt:__________:end_td
-                  ^
-           start_timestamp
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT w.task_id AS task_id, t.name AS task_name, t.category_id AS category_id, '
-        'SUM(w.end_timestamp - w.start_timestamp) AS work_seconds '
-        'FROM main.work_items w '
-        'INNER JOIN main.tasks t '
-        'ON (w.task_id = t.id) '
-        'WHERE w.start_timestamp >= ? AND w.start_timestamp <= ? '
-        'GROUP BY w.task_id, t.name, t.category_id',
-        start_ts, end_ts,
+        'SELECT ww.task_id, t.name AS task_name, t.category_id,'
+        'COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
+        'FROM ('
+        '   SELECT wi.task_id,'
+        '       CASE '
+        '           WHEN (wi.start_timestamp < ?) THEN ? ELSE wi.start_timestamp'
+        '       END start_ts,'
+        '       CASE '
+        '           WHEN (COALESCE(wi.end_timestamp, ?) > ?) THEN ? ELSE COALESCE(wi.end_timestamp, ?)'
+        '       END end_ts'
+        '   FROM main.work_items wi'
+        '   WHERE ('
+        '       wi.start_timestamp >= ? AND wi.start_timestamp < ?'
+        '   ) OR ('
+        '       COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?'
+        '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
+        ') ww '
+        'INNER JOIN main.tasks t ON (ww.task_id = t.id) '
+        'GROUP BY ww.task_id, t.name, t.category_id',
+        start_ts, start_ts,  # WHEN (...) END start_ts
+        now_ts, end_ts,  # WHEN (...) END end_ts
+        end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
+        start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
+        now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
+        start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     )
 
 

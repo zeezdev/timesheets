@@ -292,7 +292,7 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     objects_rollback.add_for_rollback('tasks', task3_c2_id)
 
     start_dt_str=datetime(2023, 3, 15, tzinfo=LOCAL_TZ).isoformat()
-    end_dt_str=datetime(2023, 4, 15, 23, 59, 59, 999999, tzinfo=LOCAL_TZ).isoformat()
+    end_dt_str=datetime(2023, 4, 16, tzinfo=LOCAL_TZ).isoformat()
     # Work items before requested datetime range
     wi_id = add_work_item(task1_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
     objects_rollback.add_for_rollback('work_items', wi_id)
@@ -422,9 +422,8 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     # Assert
     assert response.status_code == 200
     res_json = response.json()
-    # FIXME: why we loose one second?
     assert res_json == {
-        'time': (10.0 * 60 * 60) - 1 + (10.0 * 60 * 60) - 1 + (10.0 * 60 * 60) - 1,  # task1 + task2 + task3
+        'time': (10.0 * 60 * 60) + (10.0 * 60 * 60) + (10.0 * 60 * 60),  # task1 + task2 + task3
     }
 
 
@@ -460,13 +459,15 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
         category1_id,
     )
     objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
     work_start = FROZEN_LOCAL_DT - timedelta(hours=2)
     wi_id = add_work_item(task1_c1_id, work_start, None)  # 2 hours before the frozen now
     objects_rollback.add_for_rollback('work_items', wi_id)
 
-    # Report for today
-    start_dt_str = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    end_dt_str = FROZEN_LOCAL_DT.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    # Report: today - tomorrow
+    start_dt_str = today.isoformat()
+    end_dt_str = tomorrow.isoformat()
 
     # Act
     response = client.get(
@@ -479,10 +480,42 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
 
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
-    assert res_json == {
+    assert response.json() == {'time': 2.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
         'time': 2.0 * 60 * 60,
-    }
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 2.0 * 60 * 60,
+    }]
 
 
 def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_rollback):
@@ -517,15 +550,15 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
         category1_id,
     )
     objects_rollback.add_for_rollback('tasks', task1_c1_id)
-    local_dt = FROZEN_LOCAL_DT - timedelta(days=1)
+    yesterday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     work_start = today - timedelta(hours=4)
     wi_id = add_work_item(task1_c1_id, work_start, None)  # 4 hours before today
     objects_rollback.add_for_rollback('work_items', wi_id)
 
-    # Report for yesterday
-    start_dt_str = local_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    end_dt_str = local_dt.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    # Report: yesterday - today
+    start_dt_str = yesterday.isoformat()
+    end_dt_str = today.isoformat()
 
     # Act
     response = client.get(
@@ -538,10 +571,42 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
 
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
-    assert res_json == {
-        'time': (4.0 * 60 * 60) - 1,  # FIXME: why we loose one second?
-    }
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
 
 
 def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback):
@@ -576,16 +641,16 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
         category1_id,
     )
     objects_rollback.add_for_rollback('tasks', task1_c1_id)
-    local_dt = FROZEN_LOCAL_DT - timedelta(days=1)
+    yesteday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     work_start = today - timedelta(hours=4)
     work_end = today + timedelta(hours=2)
     wi_id = add_work_item(task1_c1_id, work_start, work_end)  # 6 hours
     objects_rollback.add_for_rollback('work_items', wi_id)
 
-    # Report for yesterday
-    start_dt_str = local_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    end_dt_str = local_dt.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    # Report: yesterday - today
+    start_dt_str = yesteday.isoformat()
+    end_dt_str = today.isoformat()
 
     # Act
     response = client.get(
@@ -598,11 +663,43 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
 
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
     # We expect 4 hours in total for yesterday
-    assert res_json == {
-        'time': (4.0 * 60 * 60) - 1,  # FIXME: why we loose one second?
-    }
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
 
 
 def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback):
@@ -639,6 +736,7 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     )
     objects_rollback.add_for_rollback('tasks', task1_c1_id)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
     work_start = today - timedelta(hours=3)
     work_end = today + timedelta(hours=4)
     assert work_end < FROZEN_LOCAL_DT
@@ -647,7 +745,7 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
 
     # Report for today
     start_dt_str = today.isoformat()
-    end_dt_str = FROZEN_LOCAL_DT.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    end_dt_str = tomorrow.isoformat()
 
     # Act
     response = client.get(
@@ -660,12 +758,43 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
 
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
     # We expect 4 hours in total for yesterday
-    expected_time = (4.0 * 60 * 60)
-    assert res_json == {
-        'time': expected_time,
-    }
+    assert response.json() == {'time': 4.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 4.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 4.0 * 60 * 60,
+    }]
 
 
 def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_rollback):
@@ -702,13 +831,14 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     )
     objects_rollback.add_for_rollback('tasks', task1_c1_id)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
     work_start = today - timedelta(hours=3)
     wi_id = add_work_item(task1_c1_id, work_start, None)
     objects_rollback.add_for_rollback('work_items', wi_id)
 
     # Report for today
     start_dt_str = today.isoformat()
-    end_dt_str = FROZEN_LOCAL_DT.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    end_dt_str = tomorrow.isoformat()
 
     # Act
     response = client.get(
@@ -719,14 +849,48 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
         },
     )
 
+    expected_time = (FROZEN_LOCAL_DT - today).seconds
+
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
     # We expect (start from today till now) in total for yesterday
-    expected_time = (FROZEN_LOCAL_DT - today).seconds
-    assert res_json == {
+    assert response.json() == {'time': expected_time}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    # We expect (start from today till now) in total for yesterday
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
         'time': expected_time,
-    }
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': expected_time,
+    }]
 
 
 def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback):
@@ -771,7 +935,7 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
 
     # Report for yesterday
     start_dt_str = yesterday.isoformat()
-    end_dt_str = local_dt.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    end_dt_str = today.isoformat()
 
     # Act
     response = client.get(
@@ -784,7 +948,40 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
 
     # Assert
     assert response.status_code == 200
-    res_json = response.json()
     # We expect 24 hours in total for yesterday
-    expected_time = (24.0 * 60 * 60) - 1  # FIXME: why we loose one second?
-    assert res_json == {'time': expected_time}
+    assert response.json() == {'time': 24.0 * 60 * 60}
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_task',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'task_id': task1_c1_id,
+        'task_name': 'TaskName1',
+        'category_id': category1_id,
+        'time': 24.0 * 60 * 60,
+    }]
+
+    # Act
+    response = client.get(
+        '/api/work/report_by_category',
+        params={
+            'start_datetime': start_dt_str,
+            'end_datetime': end_dt_str,
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [{
+        'category_id': category1_id,
+        'category_name': 'CategoryName1',
+        'time': 24.0 * 60 * 60,
+    }]
