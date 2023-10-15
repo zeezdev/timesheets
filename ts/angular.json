@@ -34,8 +34,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -58,6 +58,10 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "ts:build",
+            "proxyConfig": "src/proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "browserTarget": "ts:build:production"
@@ -88,97 +92,6 @@
             ],
             "styles": [
               "src/styles.css"
-            ],
-            "scripts": []
-          }
-        }
-      }
-    },
-    "category-form": {
-      "projectType": "application",
-      "schematics": {},
-      "root": "projects/category-form",
-      "sourceRoot": "projects/category-form/src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:browser",
-          "options": {
-            "outputPath": "dist/category-form",
-            "index": "projects/category-form/src/index.html",
-            "main": "projects/category-form/src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
-            "tsConfig": "projects/category-form/tsconfig.app.json",
-            "assets": [
-              "projects/category-form/src/favicon.ico",
-              "projects/category-form/src/assets"
-            ],
-            "styles": [
-              "projects/category-form/src/styles.css"
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
-                }
-              ],
-              "outputHashing": "all"
-            },
-            "development": {
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true
-            }
-          },
-          "defaultConfiguration": "production"
-        },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "configurations": {
-            "production": {
-              "browserTarget": "category-form:build:production"
-            },
-            "development": {
-              "browserTarget": "category-form:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
-        "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
-          "options": {
-            "browserTarget": "category-form:build"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
-            "tsConfig": "projects/category-form/tsconfig.spec.json",
-            "assets": [
-              "projects/category-form/src/favicon.ico",
-              "projects/category-form/src/assets"
-            ],
-            "styles": [
-              "projects/category-form/src/styles.css"
             ],
             "scripts": []
           }

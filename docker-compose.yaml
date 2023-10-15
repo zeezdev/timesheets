@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  ts-be:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn api:app --host 0.0.0.0 --port 8874 --reload
+    volumes:
+      - "./db:/app/db"
+    ports:
+      - 8874:8874
+  ts-fe:
+    build:
+      context: ts
+      dockerfile: Dockerfile
+    ports:
+      - 8875:8875
