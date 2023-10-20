@@ -2,7 +2,7 @@ from datetime import datetime
 from itertools import islice
 from typing import Union, Annotated
 
-from fastapi import FastAPI, APIRouter, Body
+from fastapi import FastAPI, APIRouter, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -219,8 +219,8 @@ def tasks_save(task_id: int, task: TaskOut) -> TaskOut:
 
 @router.get('/work/report_by_category')
 def get_work_report_by_category(
-    start_datetime: Annotated[datetime | None, Body()] = None,
-    end_datetime: Annotated[datetime | None, Body()] = None,
+    start_datetime: Annotated[datetime | None, Query()] = None,
+    end_datetime: Annotated[datetime | None, Query()] = None,
 ) -> list[WorkReportCategory]:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
@@ -237,8 +237,8 @@ def get_work_report_by_category(
 
 @router.get('/work/report_by_task')
 def get_work_report_by_task(
-    start_datetime: Annotated[datetime | None, Body()] = None,
-    end_datetime: Annotated[datetime | None, Body()] = None,
+    start_datetime: Annotated[datetime | None, Query()] = None,
+    end_datetime: Annotated[datetime | None, Query()] = None,
 ) -> list[WorkReportTask]:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
@@ -256,8 +256,8 @@ def get_work_report_by_task(
 
 @router.get('/work/report_total')
 def get_work_report_total(
-    start_datetime: Annotated[datetime | None, Body()] = None,
-    end_datetime: Annotated[datetime | None, Body()] = None,
+    start_datetime: Annotated[datetime | None, Query()] = None,
+    end_datetime: Annotated[datetime | None, Query()] = None,
 ) -> WorkReportTotal:
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
