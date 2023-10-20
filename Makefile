@@ -20,19 +20,19 @@ build_be:
 push_be:
 	docker-compose push ts-be
 
+up_be:
+	docker-compose up ts-be
+
 run_migrate:
 	docker-compose run ts-be python main.py --migrate
 
-dev_run_be_pytest:
+run_be_pytest:
 	docker-compose run ts-be pytest
 
-dev_up_be:
-	docker-compose up ts-be
-
-dev_build_fe:
+build_fe:
 	docker-compose build --no-cache ts-fe
 
-dev_up_fe:
+up_fe:
 	docker-compose up ts-fe
 
 dev_up:
@@ -40,11 +40,11 @@ dev_up:
 
 # Production
 
-prod_build_web:
-	docker-compose -f docker-compose.yaml -f production.yaml build --no-cache ts-web
+build_web:
+	docker-compose -f production.yaml build --no-cache ts-web
 
-prod_push_web:
-	docker-compose -f docker-compose.yaml -f production.yaml push ts-web
+push_web:
+	docker-compose -f production.yaml push ts-web
 
 up:
-	docker-compose -f docker-compose.yaml -f production.yaml up ts-be ts-web
+	docker-compose -f production.yaml up ts-be ts-web

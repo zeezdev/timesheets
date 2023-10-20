@@ -15,7 +15,7 @@ __pycache__/
 # dependencies
 /node_modules/
 /ts/node_modules/
-/venv/
+/be/.venv/
 
 # IDEs and editors
 /.idea
