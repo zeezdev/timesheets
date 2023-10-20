@@ -23,7 +23,9 @@ jobs:
       - name: Install requirements
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r be/requirements.txt
         # Run the tests using pytest.
       - name: Run pytest
-        run: pytest
+        run: |
+          cd be
+          pytest
