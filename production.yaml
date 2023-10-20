@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  ts-be:
+    command:  uvicorn api:app --host 0.0.0.0 --port 8874 --proxy-headers
+    volumes:
+      - "./db:/db"
+  ts-web:
+    build:
+      context: .
+      dockerfile: web.Dockerfile
+    image: zeezdev/timesheet-web
+    ports:
+      - 8875:80

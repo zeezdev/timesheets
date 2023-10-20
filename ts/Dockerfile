@@ -1,15 +1,13 @@
 FROM node:16.14.2-slim
 
-WORKDIR /app/fe
+WORKDIR /app
 
-COPY ./*.json .
+COPY package.json package-lock.json ./
 
 RUN npm install
 
-COPY ./src ./src
+COPY . .
 
-#RUN npm run build
+VOLUME /app
 
 EXPOSE 8875
-
-CMD ["npm", "start"]
