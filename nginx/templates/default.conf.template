@@ -2,7 +2,7 @@
 # (read more about templates in the docs https://hub.docker.com/_/nginx).
 
 upstream api {
-    server ts-be:8874;
+    server ${TIMESHEET_API_HOST}:8874;
 }
 
 server {

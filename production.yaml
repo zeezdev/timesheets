@@ -14,3 +14,5 @@ services:
     image: zeezdev/timesheet-web
     ports:
       - 8875:80
+    environment:
+      - TIMESHEET_API_HOST=ts-be

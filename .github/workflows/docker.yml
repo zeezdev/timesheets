@@ -29,6 +29,9 @@ jobs:
           file: web.Dockerfile
           load: true
           tags: ${{ env.WEB_TEST_TAG }}
+      - name: Test docker run
+        run: |
+          docker run -e TIMESHEET_API_HOST=localhost -p 8875:80 --rm ${{ env.WEB_TEST_TAG }}
   docker-timesheet-be:
     runs-on: ubuntu-latest
     steps:
