@@ -96,7 +96,5 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: web.Dockerfile
           push: true
           tags: ${{ env.WEB_TEST_TAG }}
