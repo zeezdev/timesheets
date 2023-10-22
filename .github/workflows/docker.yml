@@ -1,14 +1,11 @@
 name: docker
 run-name: docker
 
-on:
-  pull_request:
-    branches:
-      - "main"
+on: [workflow_call]  # allow this workflow to be called from other workflows
 
-env:
-  WEB_TEST_TAG: zeezdev/timesheet-web:test
-  BE_TEST_TAG: zeezdev/timesheet-be:test
+#env:
+#  WEB_TEST_TAG: zeezdev/timesheet-web:test
+#  BE_TEST_TAG: zeezdev/timesheet-be:test
 
 jobs:
   docker-timesheet-web:

@@ -35,17 +35,20 @@ name: tests
 run-name: tests
 
 on:
-  workflow_run:
-    workflows:
-      - docker
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 env:
   WEB_TEST_TAG: zeezdev/timesheet-web:test
   BE_TEST_TAG: zeezdev/timesheet-be:test
 
 jobs:
+  build:
+    uses: ./.github/workflows/docker.yml  # use the callable tests job to run tests
   pytest-in-docker:
     runs-on: ubuntu-latest
     steps:
