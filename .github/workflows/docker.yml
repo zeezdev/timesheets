@@ -44,7 +44,7 @@ jobs:
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: be/Dockerfile
+          context: be
+          file: Dockerfile
           load: true
           tags: ${{ env.BE_TEST_TAG }}
