@@ -45,6 +45,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: be
-          file: Dockerfile
+          file: be/Dockerfile
           load: true
           tags: ${{ env.BE_TEST_TAG }}
