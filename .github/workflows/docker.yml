@@ -1,7 +1,8 @@
 name: docker
 run-name: docker
 
-on: [workflow_call]  # allow this workflow to be called from other workflows
+on:
+  workflow_call:  # allow this workflow to be called from other workflows
 
 #env:
 #  WEB_TEST_TAG: zeezdev/timesheet-web:test
