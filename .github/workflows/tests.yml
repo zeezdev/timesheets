@@ -31,16 +31,15 @@
 #          pytest
 
 
-name: ci
+name: tests
 run-name: tests
 
 on:
-  push:
-    branches:
-      - "main"
-  pull_request:
-    branches:
-      - "main"
+  workflow_run:
+    workflows:
+      - docker
+    types:
+      - completed
 
 env:
   WEB_TEST_TAG: zeezdev/timesheet-web:test
@@ -49,7 +48,6 @@ env:
 jobs:
   pytest-in-docker:
     runs-on: ubuntu-latest
-#    needs: docker-timesheet-be
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v3
