@@ -41,16 +41,26 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and export to Docker
+      - name: Build and export
         uses: docker/build-push-action@v5
         with:
           context: be
           file: be/Dockerfile
-          load: true
           tags: ${{ env.BE_TEST_TAG }}
-  pytest-in-be-docker:
+          outputs: type=docker,dest=/tmp/timesheet-be.tar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: timesheet-be-image
+          path: /tmp/timesheet-be.tar
+  pytest-in-docker:
     runs-on: ubuntu-latest
     needs: docker-timesheet-be
     steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: timesheet-be-image
+          path: /tmp
       - name: Run pytest
         run: docker run ${{ env.BE_TEST_TAG }} pytest
