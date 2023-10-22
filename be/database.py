@@ -1,3 +1,4 @@
+import os
 import contextlib
 import importlib.util
 import logging
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_database_name() -> str:
-    return 'timesheet.db'
+    return os.getenv('TIMESHEET_DB_FILENAME', '../db/timesheet.db')
 
 
 def get_connection(database_name: str | None = None) -> Connection:

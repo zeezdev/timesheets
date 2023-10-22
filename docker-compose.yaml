@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  ts-be:
+    build:
+      context: be
+      dockerfile: Dockerfile
+    image: zeezdev/timesheet-be
+    command: uvicorn api:app --host 0.0.0.0 --port 8874 --reload
+    volumes:
+      - "./db:/db"
+      - "./be:/app"
+    ports:
+      - 8874:8874
+    environment:
+      - TIMESHEET_DB_FILENAME=/db/timesheet.db
+  ts-fe:
+    build:
+      context: ts
+      dockerfile: Dockerfile
+    image: zeezdev/timesheet-fe
+    command: npm start
+    volumes:
+      - "./ts:/app"
+    ports:
+      - 8875:8875
+    environment:
+      - TIMESHEET_API_HOST=ts-be

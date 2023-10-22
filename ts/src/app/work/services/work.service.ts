@@ -3,11 +3,12 @@ import {Observable} from 'rxjs';
 // import {catchError} from "rxjs/operators";
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
+import {AppSettings} from "../../app.settings";
 
 
 @Injectable({providedIn: 'root'})
 export class WorkService {
-  workUrl = 'http://localhost:8874/api/work';
+  workUrl = `${AppSettings.API_URL}/work`;
   // private handleError: HandleError;
 
   constructor(

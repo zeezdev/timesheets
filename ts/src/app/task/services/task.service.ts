@@ -1,13 +1,14 @@
 import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Observable} from "rxjs";
-import {catchError} from "rxjs/operators";
+// import {catchError} from "rxjs/operators";
 import {Task} from "./task";
 import {Injectable} from "@angular/core";
+import {AppSettings} from "../../app.settings";
 
 
 @Injectable()
 export class TaskService {
-  tasksUrl = 'http://localhost:8874/api/tasks';
+  tasksUrl = `${AppSettings.API_URL}/tasks`;
   httpOptions = {
     headers: new HttpHeaders({'Content-Type': 'application/json'})
   }

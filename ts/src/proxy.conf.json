@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost:8874",
+    "target": "http://ts-be:8874",
     "secure": false
   }
 }
