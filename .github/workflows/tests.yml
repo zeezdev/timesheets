@@ -49,7 +49,7 @@ env:
 jobs:
   pytest-in-docker:
     runs-on: ubuntu-latest
-    needs: docker-timesheet-be
+#    needs: docker-timesheet-be
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v3
