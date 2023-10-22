@@ -38,7 +38,7 @@ jobs:
         with:
           context: .
           file: web.Dockerfile
-          tags: ${{ env.BE_TEST_TAG }}
+          tags: ${{ env.WEb_TEST_TAG }}
           outputs: type=docker,dest=/tmp/timesheet-web.tar
       - name: Upload artifact
         uses: actions/upload-artifact@v3
