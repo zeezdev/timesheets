@@ -48,3 +48,6 @@ push_web:
 
 up:
 	docker-compose -f production.yaml up ts-be ts-web
+
+backup_db:
+	cp db/timesheet.db "db/timesheet.db.$(date +%d%m%Y)"
