@@ -6,7 +6,7 @@ import {Injectable} from '@angular/core';
 import {AppSettings} from "../../app.settings";
 
 
-@Injectable({providedIn: 'root'})
+@Injectable()
 export class WorkService {
   workUrl = `${AppSettings.API_URL}/work`;
   // private handleError: HandleError;

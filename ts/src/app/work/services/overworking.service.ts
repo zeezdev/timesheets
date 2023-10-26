@@ -6,7 +6,7 @@ import {WorkReportTotal} from './work';
 import {AppSettings} from '../../app.settings';
 import {WorkService} from './work.service';
 
-@Injectable({providedIn: 'root'})
+@Injectable()
 export class OverworkingWatcher {
   private overworkInterval: Observable<number> = null;
 

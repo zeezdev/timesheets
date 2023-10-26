@@ -1,6 +1,9 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CategoryListComponent } from './category-list.component';
+import {HttpClientTestingModule} from "@angular/common/http/testing";
+import {MatTableModule} from "@angular/material/table";
+import {CategoryService} from "../services/category.service";
 
 describe('CategoryComponent', () => {
   let component: CategoryListComponent;
@@ -8,7 +11,12 @@ describe('CategoryComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ CategoryListComponent ]
+      imports: [
+        HttpClientTestingModule,
+        MatTableModule,
+      ],
+      declarations: [CategoryListComponent],
+      providers: [CategoryService],
     })
     .compileComponents();
   }));

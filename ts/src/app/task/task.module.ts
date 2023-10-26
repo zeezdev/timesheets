@@ -10,6 +10,7 @@ import {MatInputModule} from "@angular/material/input";
 import {NgClass} from "@angular/common";
 import {TaskService} from "./services/task.service";
 import {MatCardModule} from "@angular/material/card";
+import {WorkService} from "../work/services/work.service";
 
 @NgModule({
   declarations: [
@@ -27,6 +28,6 @@ import {MatCardModule} from "@angular/material/card";
     NgClass,
     MatCardModule,
   ],
-  providers: [TaskService],
+  providers: [TaskService, WorkService],
 })
 export class TaskModule {}
