@@ -35,6 +35,9 @@ build_fe:
 up_fe:
 	docker-compose up ts-fe
 
+run_fe_test:
+	docker-compose run ts-fe npm run test-karma
+
 dev_up:
 	docker-compose up ts-be ts-fe
 
