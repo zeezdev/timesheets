@@ -65,8 +65,8 @@ jobs:
       - name: Build and export
         uses: docker/build-push-action@v5
         with:
-          context: fe
-          file: fe/Dockerfile
+          context: ts
+          file: ts/Dockerfile
           tags: ${{ env.FE_TEST_TAG }}
           outputs: type=docker,dest=/tmp/timesheet-fe.tar
       - name: Upload artifact
