@@ -9,7 +9,7 @@ on:
 env:
   WEB_TEST_TAG: zeezdev/timesheet-web:test
   BE_TEST_TAG: zeezdev/timesheet-be:test
-  FE_TEST_TAG: zeezdev/timesheet-Fe:test
+  FE_TEST_TAG: zeezdev/timesheet-fe:test
 
 jobs:
   docker-timesheet-web:
