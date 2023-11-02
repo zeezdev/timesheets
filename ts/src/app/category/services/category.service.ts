@@ -12,14 +12,10 @@ export class CategoryService {
   httpOptions = {
     headers: new HttpHeaders({ 'Content-Type': 'application/json' })
   };
-  // private handleError: HandleError;
 
   constructor(
     private http: HttpClient,
-    // httpErrorHandler: HttpErrorHandler
-  ) {
-    // this.handleError = httpErrorHandler.createHandleError('CategoryService');
-  }
+  ) { }
 
   /** GET a category list from the server */
   getCategories(): Observable<Category[]> {
@@ -34,21 +30,27 @@ export class CategoryService {
   getCategory(id: number): Observable<Category> {
     return this.http.get<Category>(`${this.categoriesUrl}/${id}`)
       .pipe(
-        // catchError(this.handleError('getCategory', []))
-      );
+        tap(() => this.log(`fetched category ${id}`)),
+        catchError(this.handleError('getCategory'))
+      ) as Observable<Category>;
   }
 
+  /** Update a category on the server **/
   updateCategory(category: Category): Observable<Category> {
     return this.http.put<Category>(`${this.categoriesUrl}/${category.id}`, category, this.httpOptions)
       .pipe(
-        // catchError(this.handleError('getHeroes', []))
-      );
+        tap(() => this.log(`updated category ${category}`)),
+        catchError(this.handleError('updateCategory'))
+      ) as Observable<Category>;
   }
 
+  /** Create a new category on the server **/
   createCategory(category: Category): Observable<Category> {
-    return this.http.post<Category>(this.categoriesUrl, category, this.httpOptions).pipe(
-      // catchError(this.handleError('getHeroes', []))
-    );
+    return this.http.post<Category>(this.categoriesUrl, category, this.httpOptions)
+      .pipe(
+        tap(() => this.log(`created category ${category}`)),
+        catchError(this.handleError('createCategory'))
+      ) as Observable<Category>;
   }
 
   /**
