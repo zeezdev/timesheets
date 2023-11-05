@@ -17,29 +17,40 @@ export class TaskService {
     private http: HttpClient,
   ) { }
 
-  /** GET heroes from the server */
+  /** GET tasks from the server */
   getTasks(): Observable<Task[]> {
     return this.http.get<Task[]>(this.tasksUrl)
-    .pipe(
-      tap(() => this.log),
-      catchError(this.handleError('getTasks'))
-    ) as Observable<Task[]>;
+      .pipe(
+        tap(tasks => this.log(`fetched tasks ${tasks}`)),
+        catchError(this.handleError('getTasks'))
+      ) as Observable<Task[]>;
   }
 
+  /** GET a task from server */
   getTask(taskId: number): Observable<Task> {
-    return this.http.get<Task>(`${this.tasksUrl}/${taskId}`).pipe(
-      // catchError(this.handleError('getTask', []))
-    );
+    return this.http.get<Task>(`${this.tasksUrl}/${taskId}`)
+      .pipe(
+        tap(task => this.log(`fetched task ${task}`)),
+        catchError(this.handleError('getTask'))
+      ) as Observable<Task>;
   }
 
+  /** Update a task on the server */
   updateTask(task: Task): Observable<Task> {
-    return this.http.put<Task>(`${this.tasksUrl}/${task.id}`, task, this.httpOptions).pipe(
-      // catchError(this.handleError('updateTask', []))
-    );
+    return this.http.put<Task>(`${this.tasksUrl}/${task.id}`, task, this.httpOptions)
+      .pipe(
+        tap(task => this.log(`updated task ${task}`)),
+        catchError(this.handleError('updateTask'))
+      ) as Observable<Task>;
   }
 
+  /** Create a new task on the server */
   createTask(task: Task): Observable<Task> {
-    return this.http.post<Task>(this.tasksUrl, task, this.httpOptions);
+    return this.http.post<Task>(this.tasksUrl, task, this.httpOptions)
+      .pipe(
+        tap(task => this.log(`created task ${task}`)),
+        catchError(this.handleError('createTask'))
+      ) as Observable<Task>;
   }
 
   /**
