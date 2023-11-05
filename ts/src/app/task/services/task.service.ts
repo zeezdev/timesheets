@@ -1,9 +1,9 @@
-import {HttpClient, HttpHeaders} from "@angular/common/http";
-import {Observable} from "rxjs";
-// import {catchError} from "rxjs/operators";
+import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
+import {Observable, tap} from "rxjs";
 import {Task} from "./task";
 import {Injectable} from "@angular/core";
 import {AppSettings} from "../../app.settings";
+import {catchError} from "rxjs/operators";
 
 
 @Injectable()
@@ -12,25 +12,22 @@ export class TaskService {
   httpOptions = {
     headers: new HttpHeaders({'Content-Type': 'application/json'})
   }
-  // private handleError: HandleError;
 
   constructor(
     private http: HttpClient,
-    // httpErrorHandler: HttpErrorHandler
-  ) {
-    // this.handleError = httpErrorHandler.createHandleError('TaskService');
-  }
+  ) { }
 
   /** GET heroes from the server */
   getTasks(): Observable<Task[]> {
-    return this.http.get<Task[]>(this.tasksUrl, this.httpOptions)
-      .pipe(
-        // catchError(this.handleError('getTasks', []))
-      );
+    return this.http.get<Task[]>(this.tasksUrl)
+    .pipe(
+      tap(() => this.log),
+      catchError(this.handleError('getTasks'))
+    ) as Observable<Task[]>;
   }
 
   getTask(taskId: number): Observable<Task> {
-    return this.http.get<Task>(`${this.tasksUrl}/${taskId}`, this.httpOptions).pipe(
+    return this.http.get<Task>(`${this.tasksUrl}/${taskId}`).pipe(
       // catchError(this.handleError('getTask', []))
     );
   }
@@ -43,5 +40,33 @@ export class TaskService {
 
   createTask(task: Task): Observable<Task> {
     return this.http.post<Task>(this.tasksUrl, task, this.httpOptions);
+  }
+
+  /**
+   * Handle Http operation that failed.
+   * Let the app continue.
+   *
+   * @param operation - name of the operation that failed
+   * @param result - optional value to return as the observable result
+   */
+  private handleError<T>(operation = 'operation') {
+    return (error: HttpErrorResponse): Observable<T> => {
+      // TODO: send the error to remote logging infrastructure
+      console.error(error); // log to console instead
+
+      // If a native error is caught, do not transform it. We only want to
+      // transform response errors that are not wrapped in an `Error`.
+      if (error.error instanceof Event) {
+        throw error.error;
+      }
+
+      const message = `server returned code ${error.status} with body "${error.error}"`;
+      // TODO: better job of transforming error for user consumption
+      throw new Error(`${operation} failed: ${message}`);
+    };
+  }
+
+  private log(message: string) {
+    console.log(`TaskService: ${message}`);
   }
 }

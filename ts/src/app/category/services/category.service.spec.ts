@@ -1,17 +1,8 @@
 import {CategoryService} from "./category.service";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {Category} from "./category";
-import {defer, of} from "rxjs";
-
-
-/**
- * Create async observable error that errors
- * after a JS engine turn
- */
-export function asyncError<T>(errorObject: any) {
-  // TODO: move to shared
-  return defer(() => Promise.reject(errorObject));
-}
+import {of} from "rxjs";
+import {asyncError} from "../../shared/utils";
 
 
 describe('CategoryService', () => {
@@ -26,6 +17,8 @@ describe('CategoryService', () => {
   it('should return expected categories (HttpClient called once)', (done: DoneFn) => {
     const expectedCategories: Category[] = [
       {id: 1, name: 'TestCategory1', description: 'Test category #1'},
+      {id: 2, name: 'TestCategory2', description: 'Test category #2'},
+      {id: 3, name: 'TestCategory3', description: 'Test category #3'},
     ];
 
     httpClientSpy.get.and.returnValue(of(expectedCategories));

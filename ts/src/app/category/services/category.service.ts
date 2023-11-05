@@ -78,6 +78,6 @@ export class CategoryService {
   }
 
   private log(message: string) {
-    console.log('CategoryService: ' + message);
+    console.log(`CategoryService: ${message}`);
   }
 }
