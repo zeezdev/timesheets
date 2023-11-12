@@ -1,9 +1,10 @@
-import {HttpClient, HttpErrorResponse} from '@angular/common/http';
+import {HttpClient} from '@angular/common/http';
 import {Observable, tap} from 'rxjs';
 import {catchError} from "rxjs/operators";
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from './work';
 import {Injectable} from '@angular/core';
 import {AppSettings} from "../../app.settings";
+import {handleError, pad} from "../../shared/utils";
 
 
 @Injectable()
@@ -15,16 +16,16 @@ export class WorkService {
   ) { }
 
   private getStartDateTime(start: Date): string {
-    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
-    const startDay = String(start.getDate()).padStart(2, '0');
+    const startMonth = pad(start.getMonth() + 1);
+    const startDay = pad(start.getDate());
     return `${start.getFullYear()}-${startMonth}-${startDay}T00:00:00`;
   }
 
   private getEndDateTime(end: Date): string {
     const realEnd = end;
-    realEnd.setDate(realEnd.getDate() + 1);
-    const endMonth = String(realEnd.getMonth() + 1).padStart(2, '0');
-    const endDay = String(realEnd.getDate()).padStart(2, '0');
+    realEnd.setDate(realEnd.getDate() + 1);  // next day
+    const endMonth = pad(realEnd.getMonth() + 1);
+    const endDay = pad(realEnd.getDate());
     return `${realEnd.getFullYear()}-${endMonth}-${endDay}T00:00:00`;
   }
 
@@ -37,7 +38,7 @@ export class WorkService {
     return this.http.get<WorkReportByCategory[]>(url)
       .pipe(
         tap(report => this.log(`fetched work report by category ${report}`)),
-        catchError(this.handleError('getWorkReportByCategory'))
+        catchError(handleError('getWorkReportByCategory'))
       ) as Observable<WorkReportByCategory[]>;
   }
 
@@ -50,7 +51,7 @@ export class WorkService {
     return this.http.get<WorkReportByTask[]>(url)
       .pipe(
         tap(report => this.log(`fetched work report by task ${report}`)),
-        catchError(this.handleError('getWorkReportByTask'))
+        catchError(handleError('getWorkReportByTask'))
       ) as Observable<WorkReportByTask[]>;
   }
 
@@ -63,7 +64,7 @@ export class WorkService {
     return this.http.get<WorkReportTotal>(url)
       .pipe(
         tap(report => this.log(`fetched total work report ${report}`)),
-        catchError(this.handleError('getWorkReportTotal'))
+        catchError(handleError('getWorkReportTotal'))
       ) as Observable<WorkReportTotal>;
   }
 
@@ -87,30 +88,6 @@ export class WorkService {
   stopWorkCurrent(): Observable<any> {
     console.log('stopWorkCurrent');
     return this.http.post(`${this.workUrl}/stop_current`, {});
-  }
-
-  /**
-   * Handle Http operation that failed.
-   * Let the app continue.
-   *
-   * @param operation - name of the operation that failed
-   * @param result - optional value to return as the observable result
-   */
-  private handleError<T>(operation = 'operation') {
-    return (error: HttpErrorResponse): Observable<T> => {
-      // TODO: send the error to remote logging infrastructure
-      console.error(error); // log to console instead
-
-      // If a native error is caught, do not transform it. We only want to
-      // transform response errors that are not wrapped in an `Error`.
-      if (error.error instanceof Event) {
-        throw error.error;
-      }
-
-      const message = `server returned code ${error.status} with body "${error.error}"`;
-      // TODO: better job of transforming error for user consumption
-      throw new Error(`${operation} failed: ${message}`);
-    };
   }
 
   private log(message: string) {

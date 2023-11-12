@@ -1,6 +1,4 @@
 import {HttpClient} from "@angular/common/http";
-import {CategoryService} from "../../category/services/category.service";
-import {Category} from "../../category/services/category";
 import {of} from "rxjs";
 import {WorkService} from "./work.service";
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from "./work";
