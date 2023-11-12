@@ -40,7 +40,7 @@ export class TaskService {
   updateTask(task: Task): Observable<Task> {
     return this.http.put<Task>(`${this.tasksUrl}/${task.id}`, task, this.httpOptions)
       .pipe(
-        tap(task => this.log(`updated task ${task}`)),
+        tap(upTask => this.log(`updated task ${upTask}`)),
         catchError(handleError('updateTask'))
       ) as Observable<Task>;
   }
@@ -49,7 +49,7 @@ export class TaskService {
   createTask(task: Task): Observable<Task> {
     return this.http.post<Task>(this.tasksUrl, task, this.httpOptions)
       .pipe(
-        tap(task => this.log(`created task ${task}`)),
+        tap(newTask => this.log(`created task ${newTask}`)),
         catchError(handleError('createTask'))
       ) as Observable<Task>;
   }

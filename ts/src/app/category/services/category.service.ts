@@ -31,7 +31,7 @@ export class CategoryService {
   getCategory(id: number): Observable<Category> {
     return this.http.get<Category>(`${this.categoriesUrl}/${id}`)
       .pipe(
-        tap(() => this.log(`fetched category ${id}`)),
+        tap(category => this.log(`fetched category ${category}`)),
         catchError(handleError('getCategory'))
       ) as Observable<Category>;
   }
@@ -40,7 +40,7 @@ export class CategoryService {
   updateCategory(category: Category): Observable<Category> {
     return this.http.put<Category>(`${this.categoriesUrl}/${category.id}`, category, this.httpOptions)
       .pipe(
-        tap(() => this.log(`updated category ${category}`)),
+        tap(upCategory => this.log(`updated category ${upCategory}`)),
         catchError(handleError('updateCategory'))
       ) as Observable<Category>;
   }
@@ -49,7 +49,7 @@ export class CategoryService {
   createCategory(category: Category): Observable<Category> {
     return this.http.post<Category>(this.categoriesUrl, category, this.httpOptions)
       .pipe(
-        tap(() => this.log(`created category ${category}`)),
+        tap(newCategory => this.log(`created category ${newCategory}`)),
         catchError(handleError('createCategory'))
       ) as Observable<Category>;
   }
