@@ -1,13 +1,12 @@
 import {Component, OnInit} from '@angular/core';
-import {Category} from "../services/category";
-import {ActivatedRoute, ParamMap, Router} from "@angular/router";
-import {CategoryService} from "../services/category.service";
-import {NotificationService} from "../../shared/notification.service";
+import {Category} from '../services/category';
+import {ActivatedRoute, ParamMap, Router} from '@angular/router';
+import {CategoryService} from '../services/category.service';
+import {NotificationService} from '../../shared/notification.service';
 
 @Component({
   selector: 'app-category-form',
   templateUrl: './category-form.component.html',
-  providers: [CategoryService, NotificationService],
   styleUrls: ['./category-form.component.css']
 })
 export class CategoryFormComponent implements OnInit {

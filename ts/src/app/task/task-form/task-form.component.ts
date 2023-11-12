@@ -1,8 +1,8 @@
 import {Component, OnInit} from '@angular/core';
 import { Task } from '../services/task';
-import {ActivatedRoute, ParamMap, Router} from "@angular/router";
-import {TaskService} from "../services/task.service";
-import {NotificationService} from "../../shared/notification.service";
+import {ActivatedRoute, ParamMap, Router} from '@angular/router';
+import {TaskService} from '../services/task.service';
+import {NotificationService} from '../../shared/notification.service';
 
 @Component({
   selector: 'app-task-form',

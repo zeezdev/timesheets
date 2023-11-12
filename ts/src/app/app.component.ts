@@ -13,5 +13,7 @@ export class AppComponent {
 
   constructor(
     private overWorkingWatcher: OverworkingWatcher,
-  ) { }
+  ) {
+    overWorkingWatcher.start();
+  }
 }

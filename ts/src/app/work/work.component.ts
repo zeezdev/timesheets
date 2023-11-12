@@ -41,7 +41,6 @@ const day = today.getDate();
   selector: 'app-work',
   templateUrl: './work.component.html',
   providers: [
-    WorkService,
     // `MomentDateAdapter` can be automatically provided by importing `MomentDateModule` in your
     // application's root module. We provide it at the component level here, due to limitations of
     // our example generation script.

@@ -6,7 +6,7 @@ import {WorkReportTotal} from './work';
 import {AppSettings} from '../../app.settings';
 import {WorkService} from './work.service';
 
-@Injectable({providedIn: 'root'})
+@Injectable()
 export class OverworkingWatcher {
   private overworkInterval: Observable<number> = null;
 
@@ -33,15 +33,16 @@ export class OverworkingWatcher {
     private workService: WorkService,
   ) {
     this.overworkInterval = interval(1000 * 60); // watch every minute
+  }
+
+  start() {
     this.overworkInterval.subscribe(
       x => {
         const today = new Date();
-        const month = today.getMonth();
-        const year = today.getFullYear();
-        const day = today.getDate();
-
-        const start = new Date(year, month, day);
-        const end = new Date(year, month, day, 23, 59, 59, 999);
+        const start = new Date(today);
+        start.setHours(0, 0, 0, 0);  // reset time
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1); // next day
 
         this.workService.getWorkReportTotal(start, end).pipe(
           map((report: WorkReportTotal) => {

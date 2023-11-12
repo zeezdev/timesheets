@@ -9,6 +9,7 @@ import {MatButtonModule} from "@angular/material/button";
 import {FormsModule} from "@angular/forms";
 import {MatSnackBarModule} from "@angular/material/snack-bar";
 import {NgClass} from "@angular/common";
+import {CategoryService} from "./services/category.service";
 
 @NgModule({
   declarations: [
@@ -26,6 +27,6 @@ import {NgClass} from "@angular/common";
     RouterLinkActive,
     NgClass,
   ],
-  providers: []
+  providers: [CategoryService],
 })
 export class CategoryModule { }

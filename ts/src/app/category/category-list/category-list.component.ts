@@ -1,12 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import {CategoryService} from "../services/category.service";
-import {Category} from "../services/category";
+import {CategoryService} from '../services/category.service';
+import {Category} from '../services/category';
 
 
 @Component({
   selector: 'app-category',
   templateUrl: './category-list.component.html',
-  providers: [CategoryService],
   styleUrls: ['./category-list.component.css']
 })
 export class CategoryListComponent implements OnInit {
