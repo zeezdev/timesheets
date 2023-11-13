@@ -3,7 +3,7 @@ import time
 
 import pytest
 from unittest.mock import patch
-from database import migrate, execute_statement, get_now_timestamp
+from database import migrate, execute_statement, get_now_timestamp, get_local_tz
 from tests.const import FROZEN_LOCAL_DT
 from tests.utils import ObjectsRollback
 
@@ -12,9 +12,10 @@ DB_NAME = 'test_timesheet.db'
 
 @pytest.fixture
 def frozen_ts():
-    """Mock `database.get_now_timestamp` with a return value == FROZEN_TS."""
-    local_dt = FROZEN_LOCAL_DT
-    utc_dt = local_dt - local_dt.astimezone().utcoffset()
+    """Mock `database.get_now_timestamp` with a return value == FROZEN_LOCAL_DT."""
+    dt_without_tz = FROZEN_LOCAL_DT.replace(tzinfo=None)
+    dt_with_tz = FROZEN_LOCAL_DT.replace(tzinfo=get_local_tz())
+    utc_dt = dt_without_tz - dt_with_tz.utcoffset()
     timestamp = time.mktime(utc_dt.timetuple())
     # TODO: utctimetuple ?
     ts = int(timestamp)
