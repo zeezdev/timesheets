@@ -44,12 +44,13 @@ def db():
 def category():
     """Make one category"""
     try:
+        category_name = 'CategoryName'
         category_id = execute_statement(
             'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-            'CategoryName',
+            category_name,
             'CategoryDescription',
         )
-        yield category_id
+        yield category_id, category_name
     finally:
         execute_statement('DELETE FROM main.categories WHERE id=?', category_id)
 
@@ -79,7 +80,7 @@ def categories(request):
 @pytest.fixture
 def task(category):
     """Make one task"""
-    category_id = category
+    category_id, category_name = category
     task_id = None
     try:
         task_id = execute_statement(
@@ -87,7 +88,7 @@ def task(category):
             'TaskName',
             category_id,
         )
-        yield task_id, category_id
+        yield task_id, category_id, category_name
     finally:
         execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
 
@@ -97,7 +98,7 @@ def tasks(request, category):
     assert isinstance(request.param, int) and request.param > 0, \
         'Incorrect parametrization for the fixture "tasks".'
 
-    category_id = category
+    category_id, category_name = category
     ids = []
 
     try:
@@ -107,17 +108,17 @@ def tasks(request, category):
                 f'TaskName#{i}',
                 category_id,
             )
-            ids.append((task_id, category_id))
+            ids.append((task_id, category_id, category_name))
 
         yield ids
     finally:
-        for task_id, _ in ids:
+        for task_id, _, _ in ids:
             execute_statement('DELETE FROM main.tasks WHERE id=?', task_id)
 
 
 @pytest.fixture
 def work_item(task):
-    task_id, _ = task
+    task_id, _, _ = task
     work_item_id = None
     ts = get_now_timestamp()
     try:

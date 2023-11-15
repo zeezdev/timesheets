@@ -6,13 +6,16 @@ from database import category_create, execute_statement, category_update, catego
 
 
 def test_category_read(db, category):
+    # Arrange
+    category_id, _ = category
+
     # Act
-    result = category_read(category)
+    result = category_read(category_id)
 
     # Assert
     result = list(result)
     assert len(result) == 2  # header + row
-    assert result[1] == (category, 'CategoryName', 'CategoryDescription')
+    assert result[1] == (category_id, 'CategoryName', 'CategoryDescription')
 
 
 def test_category_add(db, objects_rollback):
@@ -29,10 +32,10 @@ def test_category_add(db, objects_rollback):
 
 def test_category_update(db, category):
     # Arrange
-    category_id = category
+    category_id, _ = category
 
     # Act
-    result = category_update(category, 'NewCategoryName', 'NewCategoryDescription')
+    result = category_update(category_id, 'NewCategoryName', 'NewCategoryDescription')
 
     # Assert
     assert result is None
@@ -60,7 +63,7 @@ def test_category_list(db, categories):
 
 def test_category_delete(db, category):
     # Arrange
-    category_id = category
+    category_id, _ = category
 
     # Act
     category_delete(category_id)

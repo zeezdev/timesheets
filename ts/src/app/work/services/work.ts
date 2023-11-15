@@ -8,6 +8,7 @@ export interface WorkReportByTask {
   task_id: number;
   task_name: string;
   category_id: number;
+  category_name: string;
   time: number;
 }
 

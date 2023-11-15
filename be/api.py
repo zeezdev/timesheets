@@ -45,6 +45,7 @@ class TaskIn(TaskBase):
 class TaskOut(TaskBase):
     id: int
     is_current: int
+    category_name: str
 
 
 class WorkReportCategory(BaseModel):
@@ -57,6 +58,7 @@ class WorkReportTask(BaseModel):
     task_id: int
     task_name: str
     category_id: int
+    category_name: str
     time: float
 
 
@@ -167,7 +169,8 @@ def tasks_list() -> list[TaskOut]:
         id=row[0],
         name=row[1],
         category_id=row[2],
-        is_current=row[3],
+        category_name=row[3],
+        is_current=row[4],
     ) for row in islice(rows, 1, None)]
 
 
@@ -183,7 +186,8 @@ def tasks_add(task: TaskIn) -> TaskOut:
         id=new_task[0],
         name=new_task[1],
         category_id=new_task[2],
-        is_current=new_task[3],
+        category_name=new_task[3],
+        is_current=new_task[4],
     )
 
 
@@ -197,7 +201,8 @@ def tasks_retrieve(task_id: int) -> TaskOut:
         id=task[0],
         name=task[1],
         category_id=task[2],
-        is_current=task[3],
+        category_name=task[3],
+        is_current=task[4],
     )
 
 
@@ -213,7 +218,8 @@ def tasks_save(task_id: int, task: TaskOut) -> TaskOut:
         id=task[0],
         name=task[1],
         category_id=task[2],
-        is_current=task[3],
+        category_name=task[3],
+        is_current=task[4],
     )
 
 
@@ -250,7 +256,8 @@ def get_work_report_by_task(
         task_id=row[0],
         task_name=row[1],
         category_id=row[2],
-        time=row[3],
+        category_name=row[3],
+        time=row[4],
     ) for row in islice(rows, 1, None)]
 
 
