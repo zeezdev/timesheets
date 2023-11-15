@@ -36,7 +36,7 @@ def test_categories_list(db, categories):
 
 def test_categories_retrieve(db, category):
     # Arrange
-    category_id = category
+    category_id, _ = category
 
     # Act
     response = client.get(f'/api/categories/{category_id}')
@@ -74,7 +74,7 @@ def test_categories_add(db, objects_rollback):
 
 def test_categories_save(db, category):
     # Arrange
-    category_id = category
+    category_id, _ = category
     update_data = {
         'id': category_id,
         'name': 'NewCategoryName',
@@ -112,15 +112,15 @@ def test_tasks_list(db, tasks):
             'id': task_id,
             'name': f'TaskName#{i}',
             'category_id': category_id,
+            'category_name': category_name,
             'is_current': 0,
-        }
-        for i, (task_id, category_id) in enumerate(task_ids)
+        } for i, (task_id, category_id, category_name) in enumerate(task_ids)
     ]
 
 
 def test_tasks_retrieve(db, task):
     # Arrange
-    task_id, category_id = task
+    task_id, category_id, category_name = task
 
     # Act
     response = client.get(f'/api/tasks/{task_id}')
@@ -131,18 +131,23 @@ def test_tasks_retrieve(db, task):
         'id': task_id,
         'name': 'TaskName',
         'category_id': category_id,
+        'category_name': category_name,
         'is_current': 0,
     }
 
 
 def test_tasks_add(db, category, objects_rollback):
     # Arrange
-    category_id = category
+    category_id, category_name = category
 
     # Act
     response = client.post(
         '/api/tasks',
-        json={'name': 'TestTask', 'category_id': category_id},
+        json={
+            'name': 'TestTask',
+            'category_id': category_id,
+            'category_name': category_name,
+        },
     )
 
     # Assert
@@ -154,6 +159,7 @@ def test_tasks_add(db, category, objects_rollback):
         'id': task_id,
         'name': 'TestTask',
         'category_id': category_id,
+        'category_name': category_name,
         'is_current': 0,
     }
     result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
@@ -164,12 +170,13 @@ def test_tasks_add(db, category, objects_rollback):
 @pytest.mark.parametrize('categories', [1], indirect=True)
 def test_tasks_save(db, task, categories):
     # Arrange
-    task_id, category_id = task
+    task_id, category_id, category_name = task
     new_category_id = categories[0]
     update_data = {
         'id': task_id,
         'name': 'NewTaskName',
         'category_id': new_category_id,
+        'category_name': 'CategoryName#0',
         'is_current': 0,
     }
 
@@ -191,7 +198,7 @@ def test_tasks_save(db, task, categories):
 
 def test_work_start(db, frozen_ts, task, objects_rollback):
     # Arrange
-    task_id, category_id = task
+    task_id, category_id, _ = task
     result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == (0,)
@@ -397,16 +404,19 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
         'task_id': task2_c1_id,
         'task_name': 'TaskName2',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
         'task_id': task3_c2_id,
         'task_name': 'TaskName3',
         'category_id': category2_id,
+        'category_name': 'CategoryName2',
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }]
 
@@ -497,6 +507,7 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 2.0 * 60 * 60,
     }]
 
@@ -588,6 +599,7 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 4.0 * 60 * 60,
     }]
 
@@ -681,6 +693,7 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 4.0 * 60 * 60,
     }]
 
@@ -776,6 +789,7 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 4.0 * 60 * 60,
     }]
 
@@ -872,6 +886,7 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': expected_time,
     }]
 
@@ -966,6 +981,7 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
         'task_id': task1_c1_id,
         'task_name': 'TaskName1',
         'category_id': category1_id,
+        'category_name': 'CategoryName1',
         'time': 24.0 * 60 * 60,
     }]
 

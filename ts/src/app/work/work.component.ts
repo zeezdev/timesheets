@@ -58,7 +58,7 @@ export class WorkComponent implements OnInit {
   workReportByTask: { task_id: number, task_name: string, category_id: number, time: string }[] = [];
   workTotal: string = null;
   displayedColumns: string[] = ['category_id', 'category_name', 'time'];
-  displayedColumnsByTask: string[] = ['task_id', 'task_name', 'category_id', 'time'];
+  displayedColumnsByTask: string[] = ['task_id', 'task_name', 'category_name', 'time'];
   range = new FormGroup({
     start: new FormControl(new Date(year, day>20 ? month : month-1, 21)),
     end: new FormControl(new Date(year, day>20 ? month+1 : month, 20))
@@ -100,6 +100,7 @@ export class WorkComponent implements OnInit {
             task_id: rep.task_id,
             task_name: rep.task_name,
             category_id: rep.category_id,
+            category_name: rep.category_name,
             time: (rep.time / AppSettings.DAY_SECONDS).toFixed(2)
           };
         })

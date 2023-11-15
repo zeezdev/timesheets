@@ -132,22 +132,22 @@ def task_print_all() -> None:
 
 def task_list() -> list:
     return execute_statement(
-        'SELECT t.id, t.name, t.category_id, '
+        'SELECT t.id, t.name, t.category_id, c.name AS category_name,'
         'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
         'FROM main.tasks AS t '
-        'LEFT JOIN main.work_items AS w '
-        'ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'LEFT JOIN main.work_items AS w ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'JOIN main.categories AS c ON (t.category_id = c.id)'
         'ORDER BY t.id'
     )
 
 
 def task_read(_id: int) -> tuple:
     return execute_statement(
-        'SELECT t.id, t.name, t.category_id, '
+        'SELECT t.id, t.name, t.category_id, c.name AS category_name, '
         'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
         'FROM main.tasks AS t '
-        'LEFT JOIN main.work_items AS w '
-        'ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'LEFT JOIN main.work_items AS w ON (t.id = w.task_id AND w.end_timestamp is NULL)'
+        'JOIN main.categories AS c ON (t.category_id = c.id)'
         'WHERE t.id=?',
         _id,
     )
@@ -248,7 +248,7 @@ def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
     now_ts = get_now_timestamp()
 
     return execute_statement(
-        'SELECT ww.task_id, t.name AS task_name, t.category_id,'
+        'SELECT ww.task_id, t.name AS task_name, t.category_id, c.name AS category_name,'
         'COALESCE(SUM(ww.end_ts - ww.start_ts), 0) AS work_seconds '
         'FROM ('
         '   SELECT wi.task_id,'
@@ -266,6 +266,7 @@ def work_get_report_task(start_dt: datetime, end_dt: datetime) -> list:
         '   ) OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)'
         ') ww '
         'INNER JOIN main.tasks t ON (ww.task_id = t.id) '
+        'JOIN main.categories c ON (t.category_id = c.id) '
         'GROUP BY ww.task_id, t.name, t.category_id',
         start_ts, start_ts,  # WHEN (...) END start_ts
         now_ts, end_ts,  # WHEN (...) END end_ts

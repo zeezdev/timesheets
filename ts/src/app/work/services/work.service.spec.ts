@@ -44,9 +44,9 @@ describe('WorkService', () => {
 
   it('should return expected work report by task (HttpClient called once)', (done: DoneFn) => {
     const expectedReport: WorkReportByTask[] = [
-      {task_id: 1, task_name: 'Task1', category_id: 1, time: 100.0},
-      {task_id: 2, task_name: 'Task2', category_id: 1, time: 200.0},
-      {task_id: 3, task_name: 'Task3', category_id: 2, time: 300.0},
+      {task_id: 1, task_name: 'Task1', category_id: 1, category_name: 'Category1', time: 100.0},
+      {task_id: 2, task_name: 'Task2', category_id: 1, category_name: 'Category1', time: 200.0},
+      {task_id: 3, task_name: 'Task3', category_id: 2, category_name: 'Category2', time: 300.0},
     ];
     // Get report for one day
     const startDate = new Date(2023, 10, 9);

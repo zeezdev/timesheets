@@ -10,7 +10,7 @@ import {WorkService} from '../../work/services/work.service';
 })
 export class TaskListComponent implements OnInit {
   tasks: Task[] = [];
-  displayedColumns: string[] = ['id', 'name', 'category_id', 'actions'];
+  displayedColumns: string[] = ['id', 'name', 'category_name', 'actions'];
   hasActiveTask: boolean = false;
 
   constructor(private taskService: TaskService, private workService: WorkService) { }

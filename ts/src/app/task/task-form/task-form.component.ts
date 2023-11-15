@@ -36,6 +36,7 @@ export class TaskFormComponent implements OnInit {
 
   onSubmit(form) {
     if (this.task !== null) {
+      // FIXME: this.task contains extra fields i.e. {is_current, category_name}
       this.service.updateTask(this.task).subscribe(
         () => {
           console.info('Task updated.');
