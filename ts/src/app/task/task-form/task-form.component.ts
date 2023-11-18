@@ -45,7 +45,10 @@ export class TaskFormComponent implements OnInit {
       );
     } else {
       this.service.createTask({
-        name: form.value.name, category_id: form.value.category_id
+        name: form.value.name,
+        category: {
+          id: form.value.category_id,
+        },
       }).subscribe(createdTask => {
         console.info('Task created');
         this.router.navigate(['/tasks', createdTask.id])

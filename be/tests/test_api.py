@@ -111,8 +111,10 @@ def test_tasks_list(db, tasks):
         {
             'id': task_id,
             'name': f'TaskName#{i}',
-            'category_id': category_id,
-            'category_name': category_name,
+            'category': {
+                'id': category_id,
+                'name': category_name,
+            },
             'is_current': 0,
         } for i, (task_id, category_id, category_name) in enumerate(task_ids)
     ]
@@ -130,8 +132,10 @@ def test_tasks_retrieve(db, task):
     assert response.json() == {
         'id': task_id,
         'name': 'TaskName',
-        'category_id': category_id,
-        'category_name': category_name,
+        'category': {
+            'id': category_id,
+            'name': category_name,
+        },
         'is_current': 0,
     }
 
@@ -139,14 +143,23 @@ def test_tasks_retrieve(db, task):
 def test_tasks_add(db, category, objects_rollback):
     # Arrange
     category_id, category_name = category
+    create_data = {
+        'name': 'TestTask',
+        'category': {
+            'id': category_id,
+            'name': category_name,
+        },
+    }
 
     # Act
     response = client.post(
         '/api/tasks',
         json={
             'name': 'TestTask',
-            'category_id': category_id,
-            'category_name': category_name,
+            'category': {
+                'id': category_id,
+                'name': category_name,
+            },
         },
     )
 
@@ -155,13 +168,8 @@ def test_tasks_add(db, category, objects_rollback):
     res_json = response.json()
     task_id = res_json['id']
     objects_rollback.add_for_rollback('tasks', task_id)
-    assert res_json == {
-        'id': task_id,
-        'name': 'TestTask',
-        'category_id': category_id,
-        'category_name': category_name,
-        'is_current': 0,
-    }
+    expected_response = {**create_data, 'id': task_id, 'is_current': 0}
+    assert res_json == expected_response
     result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
     assert len(result) == 2  # header + row
     assert result[1] == ('TestTask', category_id)
@@ -175,9 +183,14 @@ def test_tasks_save(db, task, categories):
     update_data = {
         'id': task_id,
         'name': 'NewTaskName',
-        'category_id': new_category_id,
-        'category_name': 'CategoryName#0',
-        'is_current': 0,
+        'category': {
+            'id': new_category_id,
+            'name': 'CategoryName#0',  # not required here
+        },
+        # 'is_current': 0,
+    }
+    expected_response = {
+        **update_data, 'is_current': 0,
     }
 
     # Act
@@ -185,7 +198,7 @@ def test_tasks_save(db, task, categories):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == update_data
+    assert response.json() == expected_response
     # Validate in DB
     result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
     assert len(result) == 2  # header + row
@@ -379,12 +392,16 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     assert response.status_code == 200
     res_json = response.json()
     assert res_json == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': (10.0 * 60 * 60) + (10.0 * 60 * 60),  # task1(4 + 2 + 4) + task2(4 + 2 + 4)
     }, {
-        'category_id': category2_id,
-        'category_name': 'CategoryName2',
+        'category': {
+            'id': category2_id,
+            'name': 'CategoryName2',
+        },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }]
 
@@ -401,22 +418,34 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     assert response.status_code == 200
     res_json = response.json()
     assert res_json == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
-        'task_id': task2_c1_id,
-        'task_name': 'TaskName2',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task2_c1_id,
+            'name': 'TaskName2',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
-        'task_id': task3_c2_id,
-        'task_name': 'TaskName3',
-        'category_id': category2_id,
-        'category_name': 'CategoryName2',
+        'task': {
+            'id': task3_c2_id,
+            'name': 'TaskName3',
+            'category': {
+                'id': category2_id,
+                'name': 'CategoryName2',
+            },
+        },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }]
 
@@ -504,10 +533,14 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 2.0 * 60 * 60,
     }]
 
@@ -523,8 +556,10 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': 2.0 * 60 * 60,
     }]
 
@@ -596,10 +631,14 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -615,8 +654,10 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -690,10 +731,14 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category':{
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -709,8 +754,10 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -786,10 +833,14 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category':{
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -805,8 +856,10 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': 4.0 * 60 * 60,
     }]
 
@@ -883,10 +936,14 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     assert response.status_code == 200
     # We expect (start from today till now) in total for yesterday
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': expected_time,
     }]
 
@@ -902,8 +959,10 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': expected_time,
     }]
 
@@ -978,10 +1037,14 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'task_id': task1_c1_id,
-        'task_name': 'TaskName1',
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'task': {
+            'id': task1_c1_id,
+            'name': 'TaskName1',
+            'category': {
+                'id': category1_id,
+                'name': 'CategoryName1',
+            },
+        },
         'time': 24.0 * 60 * 60,
     }]
 
@@ -997,7 +1060,9 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
     # Assert
     assert response.status_code == 200
     assert response.json() == [{
-        'category_id': category1_id,
-        'category_name': 'CategoryName1',
+        'category': {
+            'id': category1_id,
+            'name': 'CategoryName1',
+        },
         'time': 24.0 * 60 * 60,
     }]

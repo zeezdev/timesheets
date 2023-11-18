@@ -33,19 +33,23 @@
 
   <table mat-table [dataSource]="workReport" class="mat-elevation-z8">
 
-    <!-- Position Column -->
+    <!-- Category Id Column -->
     <ng-container matColumnDef="category_id">
       <th mat-header-cell *matHeaderCellDef> Category Id </th>
-      <td mat-cell *matCellDef="let element"> {{element.category_id}} </td>
+      <td mat-cell *matCellDef="let element"> {{element.category.id}} </td>
     </ng-container>
 
-    <!-- Name Column -->
+    <!-- Category Name Column -->
     <ng-container matColumnDef="category_name">
       <th mat-header-cell *matHeaderCellDef> Category Name </th>
-      <td mat-cell *matCellDef="let element"> {{element.category_name}} </td>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/categories', element.category.id]">
+          {{element.category.name}}
+        </a>
+      </td>
     </ng-container>
 
-    <!-- Weight Column -->
+    <!-- Time Column -->
     <ng-container matColumnDef="time">
       <th mat-header-cell *matHeaderCellDef> Time </th>
       <td mat-cell *matCellDef="let element"> {{element.time}} </td>
@@ -62,25 +66,33 @@
     <!-- Task ID Column -->
     <ng-container matColumnDef="task_id">
       <th mat-header-cell *matHeaderCellDef> Task Id </th>
-      <td mat-cell *matCellDef="let element"> {{element.task_id}} </td>
+      <td mat-cell *matCellDef="let element"> {{element.task.id}} </td>
     </ng-container>
 
     <!-- Task Name Column -->
     <ng-container matColumnDef="task_name">
       <th mat-header-cell *matHeaderCellDef> Task Name </th>
-      <td mat-cell *matCellDef="let element"> {{element.task_name}} </td>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/tasks', element.task.id]">
+          {{element.task.name}}
+        </a>
+      </td>
     </ng-container>
 
-    <!-- Categoy ID Column -->
+    <!-- Category Column -->
     <ng-container matColumnDef="category_name">
       <th mat-header-cell *matHeaderCellDef> Category Name </th>
-      <td mat-cell *matCellDef="let element"> {{element.category_name}} </td>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/categories', element.task.category.id]">
+          {{element.task.category.name}}
+        </a>
+      </td>
     </ng-container>
 
-    <!-- Weight Column -->
+    <!-- Time Column -->
     <ng-container matColumnDef="time">
       <th mat-header-cell *matHeaderCellDef> Time </th>
-      <td mat-cell *matCellDef="let element"> {{element.time}} </td>
+      <td mat-cell *matCellDef="let element">{{element.time}}</td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumnsByTask"></tr>

@@ -6,17 +6,19 @@ import {ReactiveFormsModule} from "@angular/forms";
 import {MatTableModule} from "@angular/material/table";
 import {WorkService} from "./services/work.service";
 import {OverworkingWatcher} from "./services/overworking.service";
+import {RouterLink} from "@angular/router";
 
 @NgModule({
   declarations: [
     WorkComponent,
   ],
-  imports: [
-    MatInputModule,
-    MatDatepickerModule,
-    ReactiveFormsModule,
-    MatTableModule,
-  ],
+    imports: [
+        MatInputModule,
+        MatDatepickerModule,
+        ReactiveFormsModule,
+        MatTableModule,
+        RouterLink,
+    ],
   providers: [WorkService, OverworkingWatcher]
 })
 export class WorkModule {}

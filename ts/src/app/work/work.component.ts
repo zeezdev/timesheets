@@ -54,8 +54,8 @@ const day = today.getDate();
   styleUrls: ['./work.component.css']
 })
 export class WorkComponent implements OnInit {
-  workReport: { category_id: number, category_name: string, time: string }[] = [];
-  workReportByTask: { task_id: number, task_name: string, category_id: number, time: string }[] = [];
+  workReport: WorkReportByCategory[] = [];
+  workReportByTask: WorkReportByTask[] = [];
   workTotal: string = null;
   displayedColumns: string[] = ['category_id', 'category_name', 'time'];
   displayedColumnsByTask: string[] = ['task_id', 'task_name', 'category_name', 'time'];
@@ -81,14 +81,13 @@ export class WorkComponent implements OnInit {
       map((report: WorkReportByCategory[]) =>
         report.map((rep: WorkReportByCategory) => {
           return {
-            category_id: rep.category_id,
-            category_name: rep.category_name,
+            category: rep.category,
             time: (rep.time / AppSettings.DAY_SECONDS).toFixed(2)
-          };
+          } as unknown as WorkReportByCategory;
         })
       )
     ).subscribe(
-      workReport => {this.workReport = workReport}
+      workReport => this.workReport = workReport
     );
   }
 
@@ -97,16 +96,13 @@ export class WorkComponent implements OnInit {
       map((report: WorkReportByTask[]) =>
         report.map((rep: WorkReportByTask) => {
           return {
-            task_id: rep.task_id,
-            task_name: rep.task_name,
-            category_id: rep.category_id,
-            category_name: rep.category_name,
+            task: rep.task,
             time: (rep.time / AppSettings.DAY_SECONDS).toFixed(2)
-          };
+          } as unknown as WorkReportByTask;
         })
       )
     ).subscribe(
-      workReport => {this.workReportByTask = workReport}
+      workReport => this.workReportByTask = workReport
     );
   }
 

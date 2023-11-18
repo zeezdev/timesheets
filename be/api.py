@@ -33,32 +33,36 @@ class CategoryOut(CategoryBase):
     id: int
 
 
-class TaskBase(BaseModel):
-    name: str
-    category_id: int
-
-
-class TaskIn(TaskBase):
-    pass
-
-
-class TaskOut(TaskBase):
+class CategoryMinimal(BaseModel):
     id: int
+    name: str | None = None
+
+
+class TaskIn(BaseModel):
+    name: str
+    category: CategoryMinimal
+
+
+class TaskOut(BaseModel):
+    id: int
+    name: str
     is_current: int
-    category_name: str
+    category: CategoryMinimal
+
+
+class TaskWithCategoryMinimal(BaseModel):
+    id: int
+    name: str
+    category: CategoryMinimal
 
 
 class WorkReportCategory(BaseModel):
-    category_id: int
-    category_name: str
+    category: CategoryMinimal
     time: float
 
 
 class WorkReportTask(BaseModel):
-    task_id: int
-    task_name: str
-    category_id: int
-    category_name: str
+    task: TaskWithCategoryMinimal
     time: float
 
 
@@ -168,8 +172,10 @@ def tasks_list() -> list[TaskOut]:
     return [TaskOut(
         id=row[0],
         name=row[1],
-        category_id=row[2],
-        category_name=row[3],
+        category=CategoryMinimal(
+            id=row[2],
+            name=row[3],
+        ),
         is_current=row[4],
     ) for row in islice(rows, 1, None)]
 
@@ -177,7 +183,7 @@ def tasks_list() -> list[TaskOut]:
 @router.post('/tasks', response_model=TaskOut, status_code=201)
 def tasks_add(task: TaskIn) -> TaskOut:
     """Creates a new task"""
-    result = task_add(name=task.name, category_id=task.category_id)
+    result = task_add(name=task.name, category_id=task.category.id)
 
     rows = task_read(_id=result)
     rows = islice(rows, 1, None)  # exclude header
@@ -185,8 +191,10 @@ def tasks_add(task: TaskIn) -> TaskOut:
     return TaskOut(
         id=new_task[0],
         name=new_task[1],
-        category_id=new_task[2],
-        category_name=new_task[3],
+        category=CategoryMinimal(
+            id=new_task[2],
+            name=new_task[3],
+        ),
         is_current=new_task[4],
     )
 
@@ -200,16 +208,18 @@ def tasks_retrieve(task_id: int) -> TaskOut:
     return TaskOut(
         id=task[0],
         name=task[1],
-        category_id=task[2],
-        category_name=task[3],
+        category=CategoryMinimal(
+            id=task[2],
+            name=task[3],
+        ),
         is_current=task[4],
     )
 
 
 @router.put('/tasks/{task_id}', response_model=TaskOut)
-def tasks_save(task_id: int, task: TaskOut) -> TaskOut:
+def tasks_save(task_id: int, task: TaskIn) -> TaskOut:
     """Updates a task instance"""
-    task_update(task_id, task.name, task.category_id)
+    task_update(task_id, task.name, task.category.id)
     # Retrieve
     rows = task_read(_id=task_id)
     rows = islice(rows, 1, None)  # exclude header
@@ -217,8 +227,10 @@ def tasks_save(task_id: int, task: TaskOut) -> TaskOut:
     return TaskOut(
         id=task[0],
         name=task[1],
-        category_id=task[2],
-        category_name=task[3],
+        category=CategoryMinimal(
+            id=task[2],
+            name=task[3],
+        ),
         is_current=task[4],
     )
 
@@ -235,8 +247,10 @@ def get_work_report_by_category(
 
     rows = work_get_report_category(start_datetime, end_datetime)
     return [WorkReportCategory(
-        category_id=row[0],
-        category_name=row[1],
+        category=CategoryMinimal(
+            id=row[0],
+            name=row[1],
+        ),
         time=row[2],
     ) for row in islice(rows, 1, None)]
 
@@ -253,10 +267,14 @@ def get_work_report_by_task(
 
     rows = work_get_report_task(start_datetime, end_datetime)
     return [WorkReportTask(
-        task_id=row[0],
-        task_name=row[1],
-        category_id=row[2],
-        category_name=row[3],
+        task=TaskWithCategoryMinimal(
+            id=row[0],
+            name=row[1],
+            category=CategoryMinimal(
+                id=row[2],
+                name=row[3],
+            )
+        ),
         time=row[4],
     ) for row in islice(rows, 1, None)]
 

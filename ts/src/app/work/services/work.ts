@@ -1,14 +1,20 @@
 export interface WorkReportByCategory {
-  category_id: number;
-  category_name: string;
+  category: {
+    id: number;
+    name: string;
+  },
   time: number;
 }
 
 export interface WorkReportByTask {
-  task_id: number;
-  task_name: string;
-  category_id: number;
-  category_name: string;
+  task: {
+    id: number;
+    name: string;
+    category: {
+      id: number;
+      name: string;
+    },
+  },
   time: number;
 }
 
