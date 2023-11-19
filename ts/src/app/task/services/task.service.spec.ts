@@ -16,9 +16,9 @@ describe('TaskService', () => {
 
   it('should return expected tasks (HttpClient called once)', (done: DoneFn) => {
     const expectedTasks: Task[] = [
-      {id: 1, name: 'TestTask1', category_id: 1, category_name: 'TestCategory1', is_current: 0},
-      {id: 2, name: 'TestTask2', category_id: 1, category_name: 'TestCategory1', is_current: 1},
-      {id: 3, name: 'TestTask3', category_id: 2, category_name: 'TestCategory2', is_current: 0},
+      {id: 1, name: 'TestTask1', category: {id: 1, name: 'TestCategory1'}, is_current: 0},
+      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: 1},
+      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: 0},
     ];
 
     httpClientSpy.get.and.returnValue(of(expectedTasks));
@@ -59,7 +59,7 @@ describe('TaskService', () => {
   });
 
   it('should return expected task (HttpClient called once)', (done: DoneFn) => {
-    const expectedTask: Task = {id: 2, name: 'TestTask2', category_id: 1, category_name: 'TestCategory1', is_current: 1};
+    const expectedTask: Task = {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: 1};
 
     httpClientSpy.get.and.returnValue(of(expectedTask));
 
@@ -81,8 +81,8 @@ describe('TaskService', () => {
   });
 
   it('should update and return expected task (HttpClient called once)', (done: DoneFn) => {
-    const taskForUpdate: Task = {id: 2, name: 'TestTask2', category_id: 1};
-    const expectedTask: Task = {...taskForUpdate, category_name: 'TestCategory1', is_current: 1};
+    const taskForUpdate: Task = {id: 2, name: 'TestTask2', category: {id: 1}};
+    const expectedTask: Task = {...taskForUpdate, category: {id: 1, name: 'TestCategory1'}, is_current: 1};
 
     httpClientSpy.put.and.returnValue(of(expectedTask));
 
@@ -108,8 +108,8 @@ describe('TaskService', () => {
   });
 
   it('should create and return expected task (HttpClient called once)', (done: DoneFn) => {
-    const taskForCreate: Task = {id: null, name: 'New task', category_id: 1};
-    const expectedTask: Task = {...taskForCreate, id: 1, category_name: 'TestCategory1', is_current: 0};
+    const taskForCreate: Task = {id: null, name: 'New task', category: {id: 1}};
+    const expectedTask: Task = {...taskForCreate, id: 1, category: {id: 1, name: 'TestCategory1'}, is_current: 0};
 
     httpClientSpy.post.and.returnValue(of(expectedTask));
 

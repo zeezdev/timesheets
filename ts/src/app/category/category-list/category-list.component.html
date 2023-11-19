@@ -10,17 +10,17 @@
     <!-- Id Column -->
     <ng-container matColumnDef="id">
       <th mat-header-cell *matHeaderCellDef> Id </th>
-      <td mat-cell *matCellDef="let element">
-        <a [routerLink]="['/categories', element.id]">
-          &nbsp;{{element.id}}&nbsp;
-        </a>
-      </td>
+      <td mat-cell *matCellDef="let element">{{element.id}}</td>
     </ng-container>
 
     <!-- Name Column -->
     <ng-container matColumnDef="name">
       <th mat-header-cell *matHeaderCellDef> Name </th>
-      <td mat-cell *matCellDef="let element"> {{element.name}} </td>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/categories', element.id]">
+          {{element.name}}
+        </a>
+      </td>
     </ng-container>
 
     <!-- Description Column -->
