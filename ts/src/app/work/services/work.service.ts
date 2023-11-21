@@ -22,7 +22,7 @@ export class WorkService {
   }
 
   private getEndDateTime(end: Date): string {
-    const realEnd = end;
+    const realEnd = new Date(end);
     realEnd.setDate(realEnd.getDate() + 1);  // next day
     const endMonth = pad(realEnd.getMonth() + 1);
     const endDay = pad(realEnd.getDate());

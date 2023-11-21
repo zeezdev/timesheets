@@ -97,4 +97,12 @@ describe('WorkService', () => {
       .withContext('called once with')
       .toHaveBeenCalledOnceWith(expectedUrl);
   });
+
+  it('should return expected end datetime each time', () => {
+    const endRangeDate = new Date('2023-11-21T09:45:00');
+
+    expect(workService['getEndDateTime'](endRangeDate)).toEqual('2023-11-22T00:00:00');
+    // repeat to be sure we'll get the same result
+    expect(workService['getEndDateTime'](endRangeDate)).toEqual('2023-11-22T00:00:00');
+  });
 });
