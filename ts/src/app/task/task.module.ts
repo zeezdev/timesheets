@@ -5,12 +5,15 @@ import {MatTableModule} from "@angular/material/table";
 import {MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import {RouterLink, RouterLinkActive} from "@angular/router";
-import {FormsModule} from "@angular/forms";
+import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {MatInputModule} from "@angular/material/input";
-import {NgClass} from "@angular/common";
+import {NgClass, NgForOf, NgIf} from "@angular/common";
 import {TaskService} from "./services/task.service";
 import {MatCardModule} from "@angular/material/card";
 import {WorkService} from "../work/services/work.service";
+import {MatSelectModule} from "@angular/material/select";
+import {MatOptionModule} from "@angular/material/core";
+import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 
 @NgModule({
   declarations: [
@@ -27,6 +30,12 @@ import {WorkService} from "../work/services/work.service";
     MatInputModule,
     NgClass,
     MatCardModule,
+    MatSelectModule,
+    MatOptionModule,
+    NgForOf,
+    NgIf,
+    ReactiveFormsModule,
+    MatProgressSpinnerModule,
   ],
   providers: [TaskService, WorkService],
 })

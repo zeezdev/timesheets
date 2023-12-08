@@ -18,5 +18,10 @@
       "es2018",
       "dom"
     ]
+  },
+  "angularCompilerOptions": {
+    "_enabledBlockTypes": [
+      "if", "switch", "for", "defer"
+    ]
   }
 }

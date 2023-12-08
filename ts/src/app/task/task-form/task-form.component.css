@@ -21,3 +21,13 @@ mat-form-field {
     height: 0;
     width: 0;
 }
+
+/* For spinner in categories select */
+.option-loading-container {
+  display: flex;
+  align-items: center;
+}
+
+.option-loading-container > span {
+  flex: 1;
+}

@@ -14,3 +14,7 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .error-snackbar {
   background: #f44336;
 }
+/* FIXME: this style is for the category select field in TaskFormComponent */
+.mdc-list-item__primary-text {
+  width: 100%;
+}
