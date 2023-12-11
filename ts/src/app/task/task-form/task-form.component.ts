@@ -1,5 +1,5 @@
-import {Component, OnInit, ViewEncapsulation} from '@angular/core';
-import { Task } from '../services/task';
+import {Component, OnInit} from '@angular/core';
+import {Task} from '../services/task';
 import {ActivatedRoute, ParamMap, Router} from '@angular/router';
 import {TaskService} from '../services/task.service';
 import {NotificationService} from '../../shared/notification.service';
@@ -46,7 +46,7 @@ export class TaskFormComponent implements OnInit {
   getCategories(event) {
     this.categories = null;
     this.categoryService.getCategories().subscribe(
-      categories => this.categories = categories
+      categories => { this.categories = categories }
     );
   }
 
@@ -60,11 +60,12 @@ export class TaskFormComponent implements OnInit {
         }
       );
     } else {
+      const category = this.categories.find(c => {
+        return c.id === form.value.category_id;
+      });
       this.service.createTask({
         name: form.value.name,
-        category: {
-          id: form.value.category_id,
-        },
+        category: category,
       }).subscribe(createdTask => {
         console.info('Task created');
         this.router.navigate(['/tasks', createdTask.id])

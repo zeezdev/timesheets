@@ -1,5 +1,4 @@
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
-
 import {TaskFormComponent} from './task-form.component';
 import {RouterTestingModule} from '@angular/router/testing';
 import {TaskService} from '../services/task.service';
@@ -18,8 +17,10 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import {OverlayContainer} from "@angular/cdk/overlay";
 import {of} from "rxjs";
 import {Category} from "../../category/services/category";
+import {Task} from "../services/task";
+import {ActivatedRoute} from "@angular/router";
 
-fdescribe('TaskFormComponent', () => {
+describe('TaskFormComponent', () => {
   let component: TaskFormComponent;
   let fixture: ComponentFixture<TaskFormComponent>;
   let inputId: HTMLInputElement;
@@ -27,7 +28,6 @@ fdescribe('TaskFormComponent', () => {
   let inputCategory: HTMLSelectElement;
   let submitButton: HTMLButtonElement;
   // Overlay
-  let container: OverlayContainer;
   let containerElement: HTMLElement;
   // Data
   const existedCategories: Category[] = [
@@ -35,12 +35,35 @@ fdescribe('TaskFormComponent', () => {
     {id: 2, name: 'MyCategory#2'},
     {id: 3, name: 'MyCategory#3'},
   ];
+  // Mock objects
+  let mockTaskService = null;
+  let mockRoute = null;
+  let mockCategoryService = null;
 
   beforeEach(async () => {
+    mockTaskService = jasmine.createSpyObj(['getTask', 'createTask', 'updateTask']);
+    mockTaskService.getTask.and.returnValue(of({
+      id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}
+    } as Task));
+    mockTaskService.updateTask.and.returnValue(of({
+      id: 9, name: 'UpdatedTask', category: {id: 3, name: 'MyCategory#3'}
+    } as Task));
+    mockTaskService.createTask.and.returnValue(of({
+      id: 9, name: 'NewTask', category: {id: 1, name: 'MyCategory#1'}
+    } as Task));
+    mockRoute = jasmine.createSpyObj('', {}, {
+      'paramMap': of( new Map([['id', '9']]))
+    });
+    mockCategoryService = jasmine.createSpyObj(['getCategories']);
+    mockCategoryService.getCategories.and.returnValue(of(existedCategories));
+
     await TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
-        RouterTestingModule,
+        RouterTestingModule.withRoutes(
+          // Redirect after creation
+          [{path: 'tasks/9', redirectTo: ''}]
+        ),
         MatSnackBarModule,
         MatDialogModule,
         FormsModule,
@@ -56,13 +79,18 @@ fdescribe('TaskFormComponent', () => {
       ],
       declarations: [TaskFormComponent],
       providers: [
-        TaskService,
+        {
+          provide: TaskService,
+          useValue: mockTaskService,
+        },
         {
           provide: CategoryService,
-          useValue: {
-            getCategories: () => of(existedCategories)
-          }
-        }
+          useValue: mockCategoryService,
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: mockRoute,
+        },
       ],
     })
     .compileComponents();
@@ -75,7 +103,6 @@ fdescribe('TaskFormComponent', () => {
     submitButton = fixture.nativeElement.querySelector('#task-submit');
 
     inject([OverlayContainer], (oc: OverlayContainer) => {
-        container = oc;
         containerElement = oc.getContainerElement();
     })();
   });
@@ -85,8 +112,6 @@ fdescribe('TaskFormComponent', () => {
   });
 
   it('should show existed task', waitForAsync(() => {
-    component.task = {id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}};
-    component.categories = [{id: 2, name: 'MyCategory#2'}];
     fixture.detectChanges();
 
     fixture.whenStable().then(() => {
@@ -98,8 +123,6 @@ fdescribe('TaskFormComponent', () => {
   }));
 
   it('should show categories on click categories list', waitForAsync(() => {
-    component.task = {id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}};
-    component.categories = [{id: 2, name: 'MyCategory#2'}];
     fixture.detectChanges();
 
     inputCategory.click();
@@ -129,13 +152,11 @@ fdescribe('TaskFormComponent', () => {
     });
   }));
 
-  it('should show option \'Loading...\' when categories being loading', () => {
-    component.task = {id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}};
-    component.categories = null;
+  it('should show option \'Loading...\' when categories being loading', waitForAsync(() => {
+    mockCategoryService.getCategories.and.returnValue(of(null));
     fixture.detectChanges();
 
     inputCategory.click();
-    fixture.detectChanges();
 
     fixture.whenStable().then(() => {
       fixture.detectChanges();
@@ -146,11 +167,11 @@ fdescribe('TaskFormComponent', () => {
       expect(options).toHaveSize(1);
       expect(options[0].textContent.trim()).toEqual('Loading...');
     });
-  });
+  }));
 
   it('should show empty elements for new task', waitForAsync(() => {
+    fixture.detectChanges();
     component.task = null;
-    component.categories = [{id: 2, name: 'MyCategory#2'}];
     fixture.detectChanges();
 
     fixture.whenStable().then(() => {
@@ -161,13 +182,12 @@ fdescribe('TaskFormComponent', () => {
     });
   }));
 
-  it('should show option \`No categories have been created yet.\'', () => {
+  it('should show option \`No categories have been created yet.\'', waitForAsync(() => {
     component.task = null;
-    component.categories = [];
+    mockCategoryService.getCategories.and.returnValue(of([]));
     fixture.detectChanges();
 
     inputCategory.click();
-    fixture.detectChanges();
 
     fixture.whenStable().then(() => {
       fixture.detectChanges();
@@ -178,37 +198,65 @@ fdescribe('TaskFormComponent', () => {
       expect(options).toHaveSize(1);
       expect(options[0].textContent.trim()).toEqual('No categories have been created yet.');
     });
-  });
+  }));
 
   it('should create new task on submit', waitForAsync(() => {
-    spyOn(component, 'onSubmit');
-    component.task = null;
-    component.categories = existedCategories;
     fixture.detectChanges();
-    inputName.value = 'NewTask';
-    inputCategory.selectedIndex = 3;
-
-    submitButton.click();
+    component.task = null;
+    // Open categories drop-down list
+    inputCategory.click();
 
     fixture.whenStable().then(() => {
-      // TODO: validate a call of the service
-      expect(component.onSubmit).toHaveBeenCalled();
+      fixture.detectChanges();
+      // Update name
+      inputName.value = 'NewTask';
+      inputName.dispatchEvent(new Event('input'));
+      // Update category (select option)
+      let options = Array.from(
+        containerElement.querySelectorAll('mat-option') as NodeListOf<HTMLElement>
+      );
+      options[0].click();
+      inputCategory.dispatchEvent(new Event('selectionChange'));
+
+      submitButton.click();
+
+      expect(mockTaskService.createTask).toHaveBeenCalledOnceWith({
+        name: 'NewTask',
+        category: {
+          id: 1,
+          name: 'MyCategory#1',
+        }
+      } as Task);
     });
   }));
 
   it('should update existed task on submit', waitForAsync(() => {
-    spyOn(component, 'onSubmit');
-    component.task = {id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}};
-    component.categories = existedCategories;
     fixture.detectChanges();
-    inputName.value = 'UpdatedTask';
-    inputCategory.selectedIndex = 3;
-
-    submitButton.click();
+    // Open categories drop-down list
+    inputCategory.click();
+    fixture.detectChanges();
 
     fixture.whenStable().then(() => {
-      // TODO: validate a call of the service
-      expect(component.onSubmit).toHaveBeenCalled();
+      fixture.detectChanges();
+      // Update name
+      inputName.value = 'UpdatedTask';
+      inputName.dispatchEvent(new Event('input'));
+      // Update category (select option)
+      let options = Array.from(
+        containerElement.querySelectorAll('mat-option') as NodeListOf<HTMLElement>
+      );
+      options[2].click();
+
+      submitButton.click();
+
+      expect(mockTaskService.updateTask).toHaveBeenCalledOnceWith({
+        id: 9,
+        name: 'UpdatedTask',
+        category: {
+          id: 3,
+          name: 'MyCategory#2', // FIXME
+        }
+      } as Task);
     });
   }));
 });
