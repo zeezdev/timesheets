@@ -9,8 +9,6 @@ import {OverworkingWatcher} from './work/services/overworking.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'TimeSheets';
-
   constructor(
     private overWorkingWatcher: OverworkingWatcher,
   ) {
