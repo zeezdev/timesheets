@@ -23,7 +23,7 @@ export class CategoryService {
     return this.http.get<Category[]>(this.categoriesUrl)
       .pipe(
         tap(categories => this.log(`fetched categories ${categories}`)),
-        catchError(handleError('getCategories'))
+        catchError(handleError('getCategories')),
       ) as Observable<Category[]>;
   }
 

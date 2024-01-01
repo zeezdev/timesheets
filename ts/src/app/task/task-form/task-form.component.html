@@ -3,9 +3,10 @@
 
   <form class="task-form" #taskForm=ngForm (ngSubmit)="onSubmit(taskForm)">
     <mat-form-field class="task-full-width" [ngClass]="{'invisible': task == null}">
-      <mat-label for="id">ID:</mat-label>
+      <mat-label>ID:</mat-label>
       <input
-        matInput id="id"
+        matInput
+        id="id"
         name="id"
         [(ngModel)]="task && task.id"
         placeholder="id"
@@ -13,25 +14,41 @@
       >
     </mat-form-field>
     <mat-form-field class="task-full-width">
-      <mat-label for="name">Name:</mat-label>
+      <mat-label>Name:</mat-label>
       <input
-        matInput id="name"
+        matInput
+        id="name"
         name="name"
         [(ngModel)]="task && task.name"
         placeholder="name"
       >
     </mat-form-field>
     <mat-form-field class="task-full-width">
-      <mat-label for="category_id">Category ID:</mat-label>
-      <input
-        matInput id="category_id"
+      <mat-label>Category:</mat-label>
+      <mat-select
+        id="category_id"
         name="category_id"
         [(ngModel)]="task && task.category.id"
-        placeholder="category ID"
+        (click)="getCategories($event)"
       >
+        <mat-option class="option-loading" *ngIf="categories === null" disabled>
+          <div class="option-loading-container">
+            <span>Loading...</span>
+            <mat-spinner class="spinner" diameter="20"></mat-spinner>
+          </div>
+        </mat-option>
+        <mat-option *ngIf="categories !== null && !categories.length" disabled>
+          <div class="container">
+            <span>No categories have been created yet.</span>
+          </div>
+        </mat-option>
+        <mat-option *ngFor="let cat of categories" [value]="cat.id">
+          {{cat.name}}
+        </mat-option>
+      </mat-select>
     </mat-form-field>
     <mat-card-actions>
-      <button mat-raised-button type="submit" color="primary">Save</button>
+      <button mat-raised-button type="submit" color="primary" id="task-submit">Save</button>
     </mat-card-actions>
   </form>
 </div>

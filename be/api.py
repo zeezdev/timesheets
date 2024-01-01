@@ -143,7 +143,7 @@ def categories_add(category: CategoryIn) -> CategoryOut:
 @router.get('/categories/{category_id}')
 def categories_retrieve(category_id: int) -> CategoryOut:
     """Retrieves a category"""
-    category = category_read(_id=category_id)
+    category = category_read(category_id)
     if category is None:
         raise HTTPException(status_code=404, detail='Not found')
 
