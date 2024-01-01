@@ -3,9 +3,9 @@ import logging
 from argparse import ArgumentParser
 from datetime import datetime
 
-from database import migrate, category_create, task_add, category_print_all, category_delete, \
-    work_start, work_stop_current, work_add, task_print_all, work_print_all, work_get_report_category, \
-    category_update, task_remove_by_id, task_update, work_remove
+from database_ import category_create, task_add, category_print_all, category_delete, \
+    work_start, work_stop_current, work_add, task_print_all, work_print_all, \
+    category_update, task_delete, task_update, work_delete, work_get_report_category
 
 HOURS_IN_WORKING_DAY = 8
 
@@ -23,11 +23,8 @@ def _work_print_report_category(start_dt: datetime, end_dt: datetime) -> None:
 
 
 def _migrate(mgrt):
-    name: str = mgrt[0] if mgrt else None
-    if name and not name.isnumeric():
-        raise ValueError(f'The name of migration must be a number from 001 to 999, but given: {name}')
-
-    migrate(name)
+    # FIXME: re-implement or remove
+    pass
 
 
 def _category(category):
@@ -54,7 +51,7 @@ def _task(task):
         task_add(name, category_id)
     elif action == 'remove':
         _id = cmd_args[0]
-        task_remove_by_id(_id)
+        task_delete(_id)
     elif action == 'update':
         _id, new_id, new_category_id = cmd_args
         task_update(_id, new_id, new_category_id)
@@ -78,7 +75,7 @@ def _work(work):
         work_add(start_dt, end_dt, int(task_id))
     elif action == 'remove':
         _id = cmd_args[0]
-        work_remove(int(_id))
+        work_delete(int(_id))
     elif action == 'show':
         work_print_all()
     elif action == 'report':

@@ -1,23 +1,29 @@
 from datetime import datetime
-from itertools import islice
 from typing import Union, Annotated
 
-from fastapi import FastAPI, APIRouter, Query
+from fastapi import FastAPI, APIRouter, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import (
+from database_ import (
     category_list,
     category_create,
     category_read,
     task_list,
-    work_get_report_category,
     work_add,
-    work_get_report_total,
     work_start as db_work_start,
-    work_stop_current as db_work_stop_current, category_update, work_get_report_task, task_read, task_update, task_add,
-    work_read, ts_to_dt,
+    work_stop_current as db_work_stop_current,
+    category_update,
+    task_read,
+    task_update,
+    task_add,
+    ts_to_dt,
+    engine,
+    work_get_report_category,
+    work_get_report_task,
+    work_get_report_total,
 )
+from models import Base
 
 
 class CategoryBase(BaseModel):
@@ -96,7 +102,7 @@ origins = [
 router = APIRouter(prefix='/api')
 
 
-def get_default_report_datetime_range() -> tuple[datetime, datetime]:
+def _get_default_report_datetime_range() -> tuple[datetime, datetime]:
     """
     Makes range for the last month, from start of 21th to end of 20th.
 
@@ -117,36 +123,34 @@ def categories_list() -> list[CategoryOut]:
     """Returns the list of categories"""
     rows = category_list()
     return [CategoryOut(
-        id=row[0],
-        name=row[1],
-        description=row[2],
-    ) for row in islice(rows, 1, None)]
+        id=row.id,
+        name=row.name,
+        description=row.description,
+    ) for row in rows]
 
 
 @router.post('/categories', response_model=CategoryOut, status_code=201)
 def categories_add(category: CategoryIn) -> CategoryOut:
     """Creates a new category"""
-    result = category_create(name=category.name, description=category.description)
-    rows = category_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    new_category = next(rows)
+    category = category_create(name=category.name, description=category.description)
     return CategoryOut(
-        id=new_category[0],
-        name=new_category[1],
-        description=new_category[2],
+        id=category.id,
+        name=category.name,
+        description=category.description,
     )
 
 
 @router.get('/categories/{category_id}')
 def categories_retrieve(category_id: int) -> CategoryOut:
     """Retrieves a category"""
-    rows = category_read(_id=category_id)
-    rows = islice(rows, 1, None)  # exclude header
-    category = next(rows)
+    category = category_read(_id=category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail='Not found')
+
     return CategoryOut(
-        id=category[0],
-        name=category[1],
-        description=category[2],
+        id=category.id,
+        name=category.name,
+        description=category.description,
     )
 
 
@@ -154,15 +158,11 @@ def categories_retrieve(category_id: int) -> CategoryOut:
 def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
     """Updates a category instance"""
     # TODO: use CategoryIn
-    category_update(category_id, category.name, category.description)
-    # Retrieve
-    rows = category_read(_id=category_id)
-    rows = islice(rows, 1, None)  # exclude header
-    category = next(rows)
+    updated_category = category_update(category_id, category.name, category.description)
     return CategoryOut(
-        id=category[0],
-        name=category[1],
-        description=category[2],
+        id=updated_category.id,
+        name=updated_category.name,
+        description=updated_category.description,
     )
 
 
@@ -170,68 +170,61 @@ def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
 def tasks_list() -> list[TaskOut]:
     rows = task_list()
     return [TaskOut(
-        id=row[0],
-        name=row[1],
+        id=row.id,
+        name=row.name,
         category=CategoryMinimal(
-            id=row[2],
-            name=row[3],
+            id=row.category_id,
+            name=row.category_name,
         ),
-        is_current=row[4],
-    ) for row in islice(rows, 1, None)]
+        is_current=row.is_current,
+    ) for row in rows]
 
 
 @router.post('/tasks', response_model=TaskOut, status_code=201)
 def tasks_add(task: TaskIn) -> TaskOut:
     """Creates a new task"""
-    result = task_add(name=task.name, category_id=task.category.id)
-
-    rows = task_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    new_task = next(rows)
+    new_task = task_add(name=task.name, category_id=task.category.id)
     return TaskOut(
-        id=new_task[0],
-        name=new_task[1],
+        id=new_task.id,
+        name=new_task.name,
         category=CategoryMinimal(
-            id=new_task[2],
-            name=new_task[3],
+            id=new_task.category_id,
+            name=new_task.category_name,
         ),
-        is_current=new_task[4],
+        is_current=new_task.is_current,
     )
 
 
 @router.get('/tasks/{task_id}', response_model=TaskOut)
 def tasks_retrieve(task_id: int) -> TaskOut:
     """Retrieves a task"""
-    rows = task_read(_id=task_id)
-    rows = islice(rows, 1, None)  # exclude header
-    task = next(rows)
+    task = task_read(id_=task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail='Not found')
+
     return TaskOut(
-        id=task[0],
-        name=task[1],
+        id=task.id,
+        name=task.name,
         category=CategoryMinimal(
-            id=task[2],
-            name=task[3],
+            id=task.category_id,
+            name=task.category_name,
         ),
-        is_current=task[4],
+        is_current=task.is_current,
     )
 
 
 @router.put('/tasks/{task_id}', response_model=TaskOut)
 def tasks_save(task_id: int, task: TaskIn) -> TaskOut:
     """Updates a task instance"""
-    task_update(task_id, task.name, task.category.id)
-    # Retrieve
-    rows = task_read(_id=task_id)
-    rows = islice(rows, 1, None)  # exclude header
-    task = next(rows)
+    updated_task = task_update(task_id, task.name, task.category.id)
     return TaskOut(
-        id=task[0],
-        name=task[1],
+        id=updated_task.id,
+        name=updated_task.name,
         category=CategoryMinimal(
-            id=task[2],
-            name=task[3],
+            id=updated_task.category_id,
+            name=updated_task.category_name,
         ),
-        is_current=task[4],
+        is_current=updated_task.is_current,
     )
 
 
@@ -243,7 +236,7 @@ def get_work_report_by_category(
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
     rows = work_get_report_category(start_datetime, end_datetime)
     return [WorkReportCategory(
@@ -252,7 +245,7 @@ def get_work_report_by_category(
             name=row[1],
         ),
         time=row[2],
-    ) for row in islice(rows, 1, None)]
+    ) for row in rows]
 
 
 @router.get('/work/report_by_task')
@@ -263,7 +256,7 @@ def get_work_report_by_task(
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
     rows = work_get_report_task(start_datetime, end_datetime)
     return [WorkReportTask(
@@ -276,7 +269,7 @@ def get_work_report_by_task(
             )
         ),
         time=row[4],
-    ) for row in islice(rows, 1, None)]
+    ) for row in rows]
 
 
 @router.get('/work/report_total')
@@ -287,11 +280,10 @@ def get_work_report_total(
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
     rows = work_get_report_total(start_datetime, end_datetime)
-    rows = islice(rows, 1, None)
-    row = next(rows)
+    row = rows[0]
 
     return WorkReportTotal(
         time=row[0],
@@ -308,16 +300,12 @@ def work_items_add(work_item: WorkItem) -> WorkItem:
 def work_start(work_start: WorkStart) -> WorkItemOut:
     print(work_start)
     # TODO: handle 'Cannot start work: already started'
-    result = db_work_start(work_start.task_id, start=work_start.start)
-
-    rows = work_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    started_work_item = next(rows)
-    start_dt = ts_to_dt(started_work_item[2])
+    started_work_item = db_work_start(work_start.task_id, start=work_start.start)
+    start_dt = ts_to_dt(started_work_item.start_timestamp)
 
     return WorkItemOut(
-        id=started_work_item[0],
-        task_id=started_work_item[1],
+        id=started_work_item.id,
+        task_id=started_work_item.task_id,
         start_dt=start_dt,
         end_dt=None,  # end dt of the started work item always is None
     )
@@ -329,6 +317,9 @@ def work_stop_current() -> None:
     db_work_stop_current()
 
 
+# Initialize the DB
+Base.metadata.create_all(bind=engine)
+# Initialize API
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
