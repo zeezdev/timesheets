@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 
-import pytest
 from fastapi.testclient import TestClient
 
 from api import app
-from database import execute_statement, dt_to_ts, ts_to_dt
+from dt import ts_to_dt, dt_to_ts
+from models import Category, Task
 from tests.const import LOCAL_TZ, FROZEN_LOCAL_DT
+from tests.factories import CategoryFactory, TaskFactory, WorkItemFactory
 
 client = TestClient(app)
 
@@ -14,43 +15,46 @@ client = TestClient(app)
 # Category API tests
 #
 
-@pytest.mark.parametrize('categories', [3], indirect=True)
-def test_categories_list(db, categories):
+
+def test_categories_list(session):
     # Arrange
-    categories_ids = sorted(categories)
+    categories = [CategoryFactory() for _ in range(3)]
 
     # Act
-    response = client.get(f'/api/categories')
+    response = client.get('/api/categories')
 
     # Arrange
     assert response.status_code == 200
     assert response.json() == [
         {
-            'id': category_id,
-            'name': f'CategoryName#{i}',
-            'description': f'CategoryDescription#{i}',
-        }
-        for i, category_id in enumerate(categories_ids)
+            'id': c.id,
+            'name': c.name,
+            'description': c.description,
+        } for c in categories
     ]
 
 
-def test_categories_retrieve(db, category):
+def test_categories_retrieve(session):
+    assert session.query(Category).count() == 0
+
     # Arrange
-    category_id, _ = category
+    category = CategoryFactory()
 
     # Act
-    response = client.get(f'/api/categories/{category_id}')
+    response = client.get(f'/api/categories/{category.id}')
 
     # Assert
     assert response.status_code == 200
     assert response.json() == {
-        'id': category_id,
-        'name': 'CategoryName',
-        'description': 'CategoryDescription',
+        'id': category.id,
+        'name': category.name,
+        'description': category.description,
     }
 
 
-def test_categories_add(db, objects_rollback):
+def test_categories_add(session):
+    assert session.query(Category).count() == 0
+
     # Act
     response = client.post(
         '/api/categories',
@@ -59,48 +63,56 @@ def test_categories_add(db, objects_rollback):
 
     # Assert
     assert response.status_code == 201
-    res_json = response.json()
-    category_id = res_json['id']
-    objects_rollback.add_for_rollback('categories', category_id)
-    assert res_json == {
-        'id': category_id,
+    category = session.query(Category).one_or_none()
+    assert category is not None
+    assert category.name == 'TestCategory'
+    assert category.description == 'Cat for test'
+    assert response.json() == {
+        'id': category.id,
         'name': 'TestCategory',
         'description': 'Cat for test',
     }
-    result = list(execute_statement('SELECT name, description FROM main.categories WHERE id=?', category_id))
-    assert len(result) == 2  # header + row
-    assert result[1] == ('TestCategory', 'Cat for test')
 
 
-def test_categories_save(db, category):
+def test_categories_save(session):
     # Arrange
-    category_id, _ = category
+    category = CategoryFactory()
     update_data = {
-        'id': category_id,
-        'name': 'NewCategoryName',
-        'description': 'NewCategoryDescription',
+        'id': category.id,
+        'name': f'{category.name} Updated',
+        'description': 'New description',
     }
 
     # Act
-    response = client.put(f'/api/categories/{category_id}', json=update_data)
+    response = client.put(
+        f'/api/categories/{category.id}',
+        json=update_data,
+    )
 
     # Assert
     assert response.status_code == 200
     assert response.json() == update_data
-    # Validate in DB
-    result = list(execute_statement('SELECT name, description FROM main.categories WHERE id=?', category_id))
-    assert len(result) == 2  # header + row
-    assert result[1] == ('NewCategoryName', 'NewCategoryDescription')
+    session.refresh(category)
+    assert category.name == update_data['name']
+    assert category.description == update_data['description']
 
 
 #
 # Task API tests
 #
 
-@pytest.mark.parametrize('tasks', [3], indirect=True)
-def test_tasks_list(db, tasks):
+def test_tasks_list(session):
     # Arrange
-    task_ids = sorted(tasks)
+    tasks = [
+        TaskFactory(),
+        TaskFactory(),
+        TaskFactory(),
+    ]
+    # Make the last task the current one
+    current_task = tasks[-1]
+    wi = current_task.work_items[0]
+    wi.end_timestamp = None
+    session.flush()
 
     # Act
     response = client.get('/api/tasks')
@@ -109,140 +121,126 @@ def test_tasks_list(db, tasks):
     assert response.status_code == 200
     assert response.json() == [
         {
-            'id': task_id,
-            'name': f'TaskName#{i}',
+            'id': t.id,
+            'name': t.name,
             'category': {
-                'id': category_id,
-                'name': category_name,
+                'id': t.category.id,
+                'name': t.category.name,
             },
-            'is_current': 0,
-        } for i, (task_id, category_id, category_name) in enumerate(task_ids)
+            'is_current': bool(t.id == current_task.id),
+        } for t in tasks
     ]
 
 
-def test_tasks_retrieve(db, task):
+def test_tasks_retrieve(session):
     # Arrange
-    task_id, category_id, category_name = task
+    task = TaskFactory()
 
     # Act
-    response = client.get(f'/api/tasks/{task_id}')
+    response = client.get(f'/api/tasks/{task.id}')
 
     # Assert
     assert response.status_code == 200
     assert response.json() == {
-        'id': task_id,
-        'name': 'TaskName',
+        'id': task.id,
+        'name': task.name,
         'category': {
-            'id': category_id,
-            'name': category_name,
+            'id': task.category.id,
+            'name': task.category.name,
         },
         'is_current': 0,
     }
 
 
-def test_tasks_add(db, category, objects_rollback):
+def test_tasks_add(session):
     # Arrange
-    category_id, category_name = category
+    category = CategoryFactory()
     create_data = {
         'name': 'TestTask',
         'category': {
-            'id': category_id,
-            'name': category_name,
+            'id': category.id,
+            'name': category.name,
         },
     }
 
     # Act
     response = client.post(
         '/api/tasks',
-        json={
-            'name': 'TestTask',
-            'category': {
-                'id': category_id,
-                'name': category_name,
-            },
-        },
+        json=create_data,
     )
 
     # Assert
     assert response.status_code == 201
     res_json = response.json()
     task_id = res_json['id']
-    objects_rollback.add_for_rollback('tasks', task_id)
-    expected_response = {**create_data, 'id': task_id, 'is_current': 0}
-    assert res_json == expected_response
-    result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
-    assert len(result) == 2  # header + row
-    assert result[1] == ('TestTask', category_id)
+    assert res_json == {**create_data, 'id': task_id, 'is_current': 0}
+    created_task = session.query(Task).filter(Task.id == task_id).one_or_none()
+    assert created_task.name == create_data['name']
+    assert created_task.category == category
 
 
-@pytest.mark.parametrize('categories', [1], indirect=True)
-def test_tasks_save(db, task, categories):
+def test_tasks_save(session):
     # Arrange
-    task_id, category_id, category_name = task
-    new_category_id = categories[0]
+    task = TaskFactory()
+    new_category = CategoryFactory()
     update_data = {
-        'id': task_id,
-        'name': 'NewTaskName',
+        'id': task.id,
+        'name': f'{task.name} Updated',
         'category': {
-            'id': new_category_id,
-            'name': 'CategoryName#0',  # not required here
+            'id': new_category.id,
+            # Category.name is not required here
         },
         # 'is_current': 0,
     }
     expected_response = {
-        **update_data, 'is_current': 0,
+        **update_data,
+        'is_current': 0,
+        'category': {'id': new_category.id, 'name': new_category.name},
     }
 
     # Act
-    response = client.put(f'/api/tasks/{task_id}', json=update_data)
+    response = client.put(f'/api/tasks/{task.id}', json=update_data)
 
     # Assert
     assert response.status_code == 200
     assert response.json() == expected_response
-    # Validate in DB
-    result = list(execute_statement('SELECT name, category_id FROM main.tasks WHERE id=?', task_id))
-    assert len(result) == 2  # header + row
-    assert result[1] == ('NewTaskName', new_category_id)
+    session.refresh(task)
+    assert task.name == update_data['name']
+    assert task.category == new_category
 
 
 #
 # Work API tests
 #
 
-def test_work_start(db, frozen_ts, task, objects_rollback):
+def test_work_start(session, frozen_ts):
     # Arrange
-    task_id, category_id, _ = task
-    result = list(execute_statement('SELECT COUNT(id) AS count FROM main.work_items WHERE task_id=?', task_id))
-    assert len(result) == 2  # header + row
-    assert result[1] == (0,)
+    task = TaskFactory()
     expected_start_dt = ts_to_dt(frozen_ts).replace(microsecond=0).isoformat()
 
+
     # Act
-    response = client.post('/api/work/start', json={'task_id': task_id})
+    response = client.post('/api/work/start', json={'task_id': task.id})
 
     # Assert
     assert response.status_code == 201
-    res_json = response.json()
-    work_item_id = res_json['id']
-    objects_rollback.add_for_rollback('work_items', work_item_id)
-    assert res_json == {
-        'id': work_item_id,
-        'task_id': task_id,
+    assert len(task.work_items) == 2
+    wi_current = task.work_items[-1]
+    assert response.json() == {
+        'id': wi_current.id,
+        'task_id': task.id,
         'start_dt': expected_start_dt,
         'end_dt': None,
     }
-    result = list(execute_statement(
-        'SELECT id, task_id, start_timestamp, end_timestamp '
-        'FROM main.work_items WHERE task_id=?',
-        task_id
-    ))
-    assert len(result) == 2  # header + row
-    assert result[1] == (work_item_id, task_id, frozen_ts, None)
 
 
-def test_work_stop_current(db, frozen_ts, work_item):
+def test_work_stop_current(session, frozen_ts):
     # Arrange
-    work_item_id, task_id = work_item
+    task = TaskFactory()
+    wi_current = task.work_items[0]
+    wi_current.end_timestamp = None
+    session.flush()
+    expected_end_timestamp = frozen_ts
 
     # Act
     response = client.post('/api/work/stop_current')
@@ -250,134 +248,169 @@ def test_work_stop_current(db, frozen_ts, work_item):
     # Assert
     assert response.status_code == 200
     assert response.json() == None
-    # Validate in DB
-    result = list(execute_statement(
-        'SELECT task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?',
-        work_item_id
-    ))
-    assert len(result) == 2  # header + row
-    assert result[1] == (task_id, frozen_ts, frozen_ts)
+    session.refresh(wi_current)
+    assert wi_current.end_timestamp == expected_end_timestamp
 
 
-def add_work_item(task_id: int, start_dt: datetime, end_dt: datetime | None) -> int:
-    start_ts = dt_to_ts(start_dt)
-    end_ts = end_dt and dt_to_ts(end_dt)
-    work_item_id = execute_statement(
-        'INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?, ?, ?)',
-        task_id,
-        start_ts,
-        end_ts,
-    )
-    return work_item_id
-
-
-def test_get_work_report(db, frozen_ts, objects_rollback):
+def test_get_work_report(session, frozen_ts):
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    category2_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName2',
-        'CategoryDescription2',
-    )
-    objects_rollback.add_for_rollback('categories', category2_id)
-    category3_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName3',
-        'CategoryDescription3',
-    )
-    objects_rollback.add_for_rollback('categories', category3_id)
+    category1 = CategoryFactory(name='CategoryName1', description='CategoryDescription1')
+    category2 = CategoryFactory(name='CategoryName2', description='CategoryDescription2')
+    CategoryFactory(name='CategoryName3', description='CategoryDescription3')
 
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
-    task2_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName2',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task2_c1_id)
-    task3_c2_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName3',
-        category2_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task3_c2_id)
+    task_c1_1 = TaskFactory(name='TaskName1', category=category1, work_items=[])
+    task_c1_2 = TaskFactory(name='TaskName2', category=category1, work_items=[])
+    task_c2_1 = TaskFactory(name='TaskName3', category=category2, work_items=[])
 
     start_dt_str=datetime(2023, 3, 15, tzinfo=LOCAL_TZ).isoformat()
     end_dt_str=datetime(2023, 4, 16, tzinfo=LOCAL_TZ).isoformat()
+
     # Work items before requested datetime range
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 3, 1, 10), datetime(2023, 3, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 3, 14, 20), datetime(2023, 3, 15))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 2, 15).timestamp(),
+        end_timestamp=datetime(2023, 2, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 3, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 3, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 3, 14, 20).timestamp(),
+        end_timestamp=datetime(2023, 3, 15).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 3, 1, 10), datetime(2023, 3, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 3, 14, 20), datetime(2023, 3, 15))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 2, 15).timestamp(),
+        end_timestamp=datetime(2023, 2, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 3, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 3, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 3, 14, 20).timestamp(),
+        end_timestamp=datetime(2023, 3, 15).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 2, 15), datetime(2023, 2, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 3, 1, 10), datetime(2023, 3, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 3, 14, 20), datetime(2023, 3, 15))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 2, 15).timestamp(),
+        end_timestamp=datetime(2023, 2, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 3, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 3, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 3, 14, 20).timestamp(),
+        end_timestamp=datetime(2023, 3, 15).timestamp(),
+    )  # 4 hours in the end
 
     # Work items inside requested datetime range
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 3, 15), datetime(2023, 3, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 4, 1, 10), datetime(2023, 4, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 4, 15, 20), datetime(2023, 4, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 3, 15).timestamp(),
+        end_timestamp=datetime(2023, 3, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 4, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 4, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 4, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 4, 16).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 3, 15), datetime(2023, 3, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 4, 1, 10), datetime(2023, 4, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 4, 15, 20), datetime(2023, 4, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 3, 15).timestamp(),
+        end_timestamp=datetime(2023, 3, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 4, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 4, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 4, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 4, 16).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 3, 15), datetime(2023, 3, 15, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 4, 1, 10), datetime(2023, 4, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 4, 15, 20), datetime(2023, 4, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 3, 15).timestamp(),
+        end_timestamp=datetime(2023, 3, 15, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 4, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 4, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 4, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 4, 16).timestamp(),
+    )  # 4 hours in the end
 
     # Work items after requested datetime range
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 4, 16), datetime(2023, 4, 16, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 5, 1, 10), datetime(2023, 5, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task1_c1_id, datetime(2023, 5, 15, 20), datetime(2023, 5, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 4, 16).timestamp(),
+        end_timestamp=datetime(2023, 4, 16, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 5, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 5, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_1,
+        start_timestamp=datetime(2023, 5, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 5, 16).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 4, 16), datetime(2023, 4, 16, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 5, 1, 10), datetime(2023, 5, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task2_c1_id, datetime(2023, 5, 15, 20), datetime(2023, 5, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 4, 16).timestamp(),
+        end_timestamp=datetime(2023, 4, 16, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 5, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 5, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c1_2,
+        start_timestamp=datetime(2023, 5, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 5, 16).timestamp(),
+    )  # 4 hours in the end
 
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 4, 16), datetime(2023, 4, 16, 4))  # 4 hours in the start
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 5, 1, 10), datetime(2023, 5, 1, 12))  # 2 hours in the middle
-    objects_rollback.add_for_rollback('work_items', wi_id)
-    wi_id = add_work_item(task3_c2_id, datetime(2023, 5, 15, 20), datetime(2023, 5, 16))  # 4 hours in the end
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 4, 16).timestamp(),
+        end_timestamp=datetime(2023, 4, 16, 4).timestamp(),
+    )  # 4 hours in the start
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 5, 1, 10).timestamp(),
+        end_timestamp=datetime(2023, 5, 1, 12).timestamp(),
+    )  # 2 hours in the middle
+    WorkItemFactory(
+        task=task_c2_1,
+        start_timestamp=datetime(2023, 5, 15, 20).timestamp(),
+        end_timestamp=datetime(2023, 5, 16).timestamp(),
+    )  # 4 hours in the end
 
     # Act
     response = client.get(
@@ -393,14 +426,14 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     res_json = response.json()
     assert res_json == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category1.id,
+            'name': category1.name,
         },
         'time': (10.0 * 60 * 60) + (10.0 * 60 * 60),  # task1(4 + 2 + 4) + task2(4 + 2 + 4)
     }, {
         'category': {
-            'id': category2_id,
-            'name': 'CategoryName2',
+            'id': category2.id,
+            'name': category2.name,
         },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }]
@@ -419,31 +452,31 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     res_json = response.json()
     assert res_json == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task_c1_1.id,
+            'name': task_c1_1.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category1.id,
+                'name': category1.name,
             },
         },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
         'task': {
-            'id': task2_c1_id,
-            'name': 'TaskName2',
+            'id': task_c1_2.id,
+            'name': task_c1_2.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category1.id,
+                'name': category1.name,
             },
         },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
     }, {
         'task': {
-            'id': task3_c2_id,
-            'name': 'TaskName3',
+            'id': task_c2_1.id,
+            'name': task_c2_1.name,
             'category': {
-                'id': category2_id,
-                'name': 'CategoryName2',
+                'id': category2.id,
+                'name': category2.name,
             },
         },
         'time': 10.0 * 60 * 60,  # 4 + 2 + 4
@@ -466,7 +499,7 @@ def test_get_work_report(db, frozen_ts, objects_rollback):
     }
 
 
-def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_in_continuous_in_range(session, frozen_ts):
     """
     Case: work started in the range and continuous inside the range (till now).
     Expected EOW (end of work) is `now`.
@@ -486,23 +519,12 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow = today + timedelta(days=1)
-    work_start = FROZEN_LOCAL_DT - timedelta(hours=2)
-    wi_id = add_work_item(task1_c1_id, work_start, None)  # 2 hours before the frozen now
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(FROZEN_LOCAL_DT - timedelta(hours=2))
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=None)  # 2 hours before the frozen now
 
     # Report: today - tomorrow
     start_dt_str = today.isoformat()
@@ -534,11 +556,11 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
     assert response.status_code == 200
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': 2.0 * 60 * 60,
@@ -557,14 +579,14 @@ def test_get_work_report_start_in_continuous_in_range(db, frozen_ts, objects_rol
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': 2.0 * 60 * 60,
     }]
 
 
-def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_in_continuous_out_range(session, frozen_ts):
     """
     Case: work started in the report range and continuous outside the range (till now).
     Expected EOW (end of work) is `er`.
@@ -584,23 +606,12 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
     yesterday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
-    work_start = today - timedelta(hours=4)
-    wi_id = add_work_item(task1_c1_id, work_start, None)  # 4 hours before today
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(today - timedelta(hours=4))
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=None)  # 4 hours before today
 
     # Report: yesterday - today
     start_dt_str = yesterday.isoformat()
@@ -632,11 +643,11 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
     assert response.status_code == 200
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': 4.0 * 60 * 60,
@@ -655,14 +666,14 @@ def test_get_work_report_start_in_continuous_out_range(db, frozen_ts, objects_ro
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': 4.0 * 60 * 60,
     }]
 
 
-def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_in_end_out_range(session, frozen_ts):
     """
     Case: work started in the report range and ended outside the range (before now).
     Expected EOW (end of work) is `er`.
@@ -682,27 +693,16 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
-    yesteday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
+    yesterday = (FROZEN_LOCAL_DT - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
-    work_start = today - timedelta(hours=4)
-    work_end = today + timedelta(hours=2)
-    wi_id = add_work_item(task1_c1_id, work_start, work_end)  # 6 hours
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(today - timedelta(hours=4))
+    work_end = dt_to_ts(today + timedelta(hours=2))
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=work_end)  # 6 hours
 
     # Report: yesterday - today
-    start_dt_str = yesteday.isoformat()
+    start_dt_str = yesterday.isoformat()
     end_dt_str = today.isoformat()
 
     # Act
@@ -732,11 +732,11 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
     assert response.status_code == 200
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category':{
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': 4.0 * 60 * 60,
@@ -755,14 +755,14 @@ def test_get_work_report_start_in_end_out_range(db, frozen_ts, objects_rollback)
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': 4.0 * 60 * 60,
     }]
 
 
-def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_out_end_in_range(session, frozen_ts):
     """
     Case: work started out the report range (before) and ended in the range.
     Expected SOW (start of work) is `sr`.
@@ -783,25 +783,14 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow = today + timedelta(days=1)
-    work_start = today - timedelta(hours=3)
-    work_end = today + timedelta(hours=4)
-    assert work_end < FROZEN_LOCAL_DT
-    wi_id = add_work_item(task1_c1_id, work_start, work_end)
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(today - timedelta(hours=3))
+    work_end = dt_to_ts(today + timedelta(hours=4))
+    assert work_end < dt_to_ts(FROZEN_LOCAL_DT)
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=work_end)
 
     # Report for today
     start_dt_str = today.isoformat()
@@ -834,11 +823,11 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     assert response.status_code == 200
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category':{
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': 4.0 * 60 * 60,
@@ -857,14 +846,14 @@ def test_get_work_report_start_out_end_in_range(db, frozen_ts, objects_rollback)
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': 4.0 * 60 * 60,
     }]
 
 
-def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_out_continuous_in_range(session, frozen_ts):
     """
     Case: work started out the report range (before) and continuous in the range.
     Expected SOW (start of work) is `sr`.
@@ -885,23 +874,12 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow = today + timedelta(days=1)
-    work_start = today - timedelta(hours=3)
-    wi_id = add_work_item(task1_c1_id, work_start, None)
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(today - timedelta(hours=3))
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=None)
 
     # Report for today
     start_dt_str = today.isoformat()
@@ -937,11 +915,11 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     # We expect (start from today till now) in total for yesterday
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': expected_time,
@@ -960,14 +938,14 @@ def test_get_work_report_start_out_continuous_in_range(db, frozen_ts, objects_ro
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': expected_time,
     }]
 
 
-def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback):
+def test_get_work_report_start_out_end_out_range(session, frozen_ts):
     """
     Case: work started out the report range (before) and ended outside the range (after).
     Expected SOW (start of work) is `sr`.
@@ -987,25 +965,14 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
     """
 
     # Arrange
-    category1_id = execute_statement(
-        'INSERT INTO main.categories (name, description) VALUES (?, ?)',
-        'CategoryName1',
-        'CategoryDescription1',
-    )
-    objects_rollback.add_for_rollback('categories', category1_id)
-    task1_c1_id = execute_statement(
-        'INSERT INTO main.tasks (name, category_id) VALUES (?, ?)',
-        'TaskName1',
-        category1_id,
-    )
-    objects_rollback.add_for_rollback('tasks', task1_c1_id)
+    category = CategoryFactory()
+    task = TaskFactory(category=category, work_items=[])
     local_dt = FROZEN_LOCAL_DT - timedelta(days=1)
     today = FROZEN_LOCAL_DT.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday = today - timedelta(days=1)
-    work_start = yesterday - timedelta(hours=3)
-    work_end = today + timedelta(hours=3)
-    wi_id = add_work_item(task1_c1_id, work_start, work_end)
-    objects_rollback.add_for_rollback('work_items', wi_id)
+    work_start = dt_to_ts(yesterday - timedelta(hours=3))
+    work_end = dt_to_ts(today + timedelta(hours=3))
+    WorkItemFactory(task=task, start_timestamp=work_start, end_timestamp=work_end)
 
     # Report for yesterday
     start_dt_str = yesterday.isoformat()
@@ -1038,11 +1005,11 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
     assert response.status_code == 200
     assert response.json() == [{
         'task': {
-            'id': task1_c1_id,
-            'name': 'TaskName1',
+            'id': task.id,
+            'name': task.name,
             'category': {
-                'id': category1_id,
-                'name': 'CategoryName1',
+                'id': category.id,
+                'name': category.name,
             },
         },
         'time': 24.0 * 60 * 60,
@@ -1061,8 +1028,8 @@ def test_get_work_report_start_out_end_out_range(db, frozen_ts, objects_rollback
     assert response.status_code == 200
     assert response.json() == [{
         'category': {
-            'id': category1_id,
-            'name': 'CategoryName1',
+            'id': category.id,
+            'name': category.name,
         },
         'time': 24.0 * 60 * 60,
     }]

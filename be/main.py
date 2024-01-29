@@ -3,8 +3,8 @@ import logging
 from argparse import ArgumentParser
 from datetime import datetime
 
-from database_ import category_create, task_add, category_print_all, category_delete, \
-    work_start, work_stop_current, work_add, task_print_all, work_print_all, \
+from services import category_create, task_add, category_delete, \
+    work_start, work_stop_current, work_add, \
     category_update, task_delete, task_update, work_delete, work_get_report_category
 
 HOURS_IN_WORKING_DAY = 8
