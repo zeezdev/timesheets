@@ -50,13 +50,6 @@ def category_read(db_session: Session, id_: int) -> Category | None:
     return row
 
 
-# def category_print_all() -> None:
-#     """Deprecated. TODO: remove"""
-#     rows = category_list()
-#     for row in rows:
-#         print(row)
-
-
 # TASK
 
 def task_create(db_session: Session, name: str, category_id: int) -> Task | None:
@@ -80,12 +73,6 @@ def task_update(db_session: Session, id_: int, name: str, category_id: int) -> T
     })
     db_session.commit()
     return task_read(db_session, id_)
-
-
-# def task_print_all() -> None:
-#     rows = task_list()
-#     for row in rows:
-#         print(row)
 
 
 def task_list(db_session: Session) -> Sequence[Row]:
@@ -223,12 +210,6 @@ def work_item_delete(db_session: Session, id_: int) -> None:
     """DELETE FROM main.work_items WHERE id = ?, id_"""
     db_session.query(WorkItem).filter(WorkItem.id == id_).delete()
     db_session.flush()
-
-
-# def work_print_all():
-#     rows = work_list()
-#     for row in rows:
-#         print(row)
 
 
 # Reporting

@@ -6,9 +6,8 @@ from unittest.mock import patch
 from sqlalchemy_utils import database_exists, drop_database
 
 from config import get_database_name
-from database import engine, SessionLocal
+from database import SessionLocal, init_db
 from dt import get_local_tz
-from manage import init_db
 from tests.const import FROZEN_LOCAL_DT
 
 from database import db_session_context
@@ -41,15 +40,13 @@ def db():
     if database_exists(db_name):
         drop_database(db_name)
 
-    init_db(engine)
-    # Session.configure(bind=engine)
+    init_db()
     yield
     drop_database(db_name)
 
 
 @pytest.fixture(scope='function', autouse=True)
 def session(db):
-    # session = Session()
     session = SessionLocal()
     session.begin_nested()
     db_session_context['session'] = session

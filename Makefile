@@ -23,8 +23,8 @@ push_be:
 up_be:
 	docker-compose up ts-be
 
-run_migrate:
-	docker-compose run ts-be python main.py --migrate
+run_init:
+	docker-compose run ts-be python main.py --init
 
 run_be_pytest:
 	docker-compose run ts-be pytest

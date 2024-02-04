@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 import schemas
+from database import get_db
 from dt import ts_to_dt
 from services import (
     category_list,
@@ -37,26 +38,6 @@ router = APIRouter(prefix='/api')
 
 
 # Dependency
-def get_db():
-    from database import SessionLocal, db_session_context
-
-    db_session = db_session_context.get('session')
-    if db_session:
-        yield db_session
-        return
-
-    try:
-        db_session = SessionLocal()
-        yield db_session
-        db_session.commit()
-    except Exception as e:
-        db_session.rollback()
-        raise
-    finally:
-        db_session.close()
-        db_session_context.pop('session', None)
-
-
 DbSession = Annotated[Session, Depends(get_db)]
 
 
@@ -261,8 +242,6 @@ def work_stop_current(db_session: DbSession):
     work_item_stop_current(db_session)
 
 
-# Initialize the DB
-# Base.metadata.create_all(bind=engine)
 # Initialize API
 app = FastAPI()
 app.add_middleware(
