@@ -3,15 +3,33 @@ import logging
 from argparse import ArgumentParser
 from datetime import datetime
 
-from database import migrate, category_create, task_add, category_print_all, category_delete, \
-    work_start, work_stop_current, work_add, task_print_all, work_print_all, work_get_report_category, \
-    category_update, task_remove_by_id, task_update, work_remove
+import services
+from database import get_db, init_db
 
 HOURS_IN_WORKING_DAY = 8
 
 
+def category_print_all() -> None:
+    """Deprecated. TODO: remove"""
+    rows = services.category_list(get_db())
+    for row in rows:
+        print(row)
+
+
+def task_print_all() -> None:
+    rows = services.task_list(get_db())
+    for row in rows:
+        print(row)
+
+
+def work_print_all():
+    rows = services.work_item_list(get_db())
+    for row in rows:
+        print(row)
+
+
 def _work_print_report_category(start_dt: datetime, end_dt: datetime) -> None:
-    res = work_get_report_category(start_dt, end_dt)
+    res = services.work_get_report_category(get_db(), start_dt, end_dt)
 
     for i, row in enumerate(res):
         category_id, category_name, time_days = row
@@ -22,25 +40,21 @@ def _work_print_report_category(start_dt: datetime, end_dt: datetime) -> None:
         print(f'{category_id}, {category_name}, {time_days}')
 
 
-def _migrate(mgrt):
-    name: str = mgrt[0] if mgrt else None
-    if name and not name.isnumeric():
-        raise ValueError(f'The name of migration must be a number from 001 to 999, but given: {name}')
-
-    migrate(name)
+def _init_db(mgrt):
+    init_db()
 
 
 def _category(category):
     action, *cmd_args = category
     if action == 'add':
         name, description = cmd_args
-        category_create(name, description)
+        services.category_create(get_db(), name, description)
     elif action == 'remove':
         _id = cmd_args[0]
-        category_delete(_id)
+        services.category_delete(get_db(), _id)
     elif action == 'update':
         _id, new_name, new_description = cmd_args
-        category_update(_id, new_name, new_description)
+        services.category_update(get_db(), _id, new_name, new_description)
     elif action == 'show':
         category_print_all()
     else:
@@ -51,13 +65,13 @@ def _task(task):
     action, *cmd_args = task
     if action == 'add':
         name, category_id = cmd_args
-        task_add(name, category_id)
+        services.task_create(get_db(), name, category_id)
     elif action == 'remove':
         _id = cmd_args[0]
-        task_remove_by_id(_id)
+        services.task_delete(get_db(), _id)
     elif action == 'update':
         _id, new_id, new_category_id = cmd_args
-        task_update(_id, new_id, new_category_id)
+        services.task_update(get_db(), _id, new_id, new_category_id)
     elif action == 'show':
         task_print_all()
     else:
@@ -68,17 +82,17 @@ def _work(work):
     action, *cmd_args = work
     if action == 'start':
         task_id = cmd_args[0]
-        work_start(task_id)
+        services.work_item_start(get_db(), task_id, None)
     elif action == 'stop':
-        work_stop_current()
+        services.work_item_stop_current(get_db())
     elif action == 'add':
         start, end, task_id = cmd_args
         start_dt = datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
         end_dt = datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
-        work_add(start_dt, end_dt, int(task_id))
+        services.work_item_create(get_db(), start_dt, end_dt, int(task_id))
     elif action == 'remove':
-        _id = cmd_args[0]
-        work_remove(int(_id))
+        id_ = cmd_args[0]
+        services.work_item_delete(get_db(), int(id_))
     elif action == 'show':
         work_print_all()
     elif action == 'report':
@@ -98,8 +112,8 @@ def _work(work):
 def work(args):
     logging.info(args)
 
-    if args.migrate is not None:
-        _migrate(args.migrate)
+    if args.init is not None:
+        _init_db(args.init)
     elif args.category is not None:
         if any([args.task is not None, args.work is not None]):
             raise Exception('--category is not compatible with --task and/or --work')
@@ -150,10 +164,8 @@ def main():
     """
     parser.add_argument('-w', '--work', nargs='+', help=work_help)
 
-    migrate_help = """
-    [name (for example: 001)]
-    """
-    parser.add_argument('-m', '--migrate', nargs='*', help=migrate_help)
+    init_help = """Initialize the DB schema"""
+    parser.add_argument('-i', '--init', nargs='*', help=init_help)
 
     args = parser.parse_args()
 
@@ -162,4 +174,6 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
+    # TODO: Consider to use `click` for CLI
+    #   https://click.palletsprojects.com/en/8.1.x/
     main()

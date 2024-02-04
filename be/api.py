@@ -1,88 +1,29 @@
 from datetime import datetime
-from itertools import islice
-from typing import Union, Annotated
+from typing import Annotated
 
-from fastapi import FastAPI, APIRouter, Query
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from database import (
+import schemas
+from database import get_db
+from dt import ts_to_dt
+from services import (
     category_list,
     category_create,
     category_read,
     task_list,
+    work_item_create,
+    work_item_start,
+    work_item_stop_current,
+    category_update,
+    task_read,
+    task_update,
+    task_create,
     work_get_report_category,
-    work_add,
+    work_get_report_task,
     work_get_report_total,
-    work_start as db_work_start,
-    work_stop_current as db_work_stop_current, category_update, work_get_report_task, task_read, task_update, task_add,
-    work_read, ts_to_dt,
 )
-
-
-class CategoryBase(BaseModel):
-    name: str
-    description: Union[str, None] = None
-
-
-class CategoryIn(CategoryBase):
-    pass
-
-
-class CategoryOut(CategoryBase):
-    id: int
-
-
-class CategoryMinimal(BaseModel):
-    id: int
-    name: str | None = None
-
-
-class TaskIn(BaseModel):
-    name: str
-    category: CategoryMinimal
-
-
-class TaskOut(BaseModel):
-    id: int
-    name: str
-    is_current: int
-    category: CategoryMinimal
-
-
-class TaskWithCategoryMinimal(BaseModel):
-    id: int
-    name: str
-    category: CategoryMinimal
-
-
-class WorkReportCategory(BaseModel):
-    category: CategoryMinimal
-    time: float
-
-
-class WorkReportTask(BaseModel):
-    task: TaskWithCategoryMinimal
-    time: float
-
-
-class WorkReportTotal(BaseModel):
-    time: float
-
-
-class WorkItem(BaseModel):
-    start_dt: datetime
-    end_dt: datetime | None
-    task_id: int
-
-
-class WorkItemOut(WorkItem):
-    id: int
-
-
-class WorkStart(BaseModel):
-    task_id: int
-    start: int | None
 
 
 # https://fastapi.tiangolo.com/tutorial/cors/
@@ -96,13 +37,17 @@ origins = [
 router = APIRouter(prefix='/api')
 
 
-def get_default_report_datetime_range() -> tuple[datetime, datetime]:
+# Dependency
+DbSession = Annotated[Session, Depends(get_db)]
+
+
+def _get_default_report_datetime_range() -> tuple[datetime, datetime]:
     """
     Makes range for the last month, from start of 21th to end of 20th.
 
     FIXME: make start day configurable
     """
-    # Get report for the last month
+    # Get the report for the last month
     now = datetime.now()
     curr_month = now.month
     curr_year = now.year
@@ -112,223 +57,192 @@ def get_default_report_datetime_range() -> tuple[datetime, datetime]:
     return start, end
 
 
-@router.get('/categories')
-def categories_list() -> list[CategoryOut]:
+@router.get('/categories', response_model=list[schemas.CategoryOut], summary='Get all categories.')
+def categories_list(db_session: DbSession):
     """Returns the list of categories"""
-    rows = category_list()
-    return [CategoryOut(
-        id=row[0],
-        name=row[1],
-        description=row[2],
-    ) for row in islice(rows, 1, None)]
+    return category_list(db_session)
 
 
-@router.post('/categories', response_model=CategoryOut, status_code=201)
-def categories_add(category: CategoryIn) -> CategoryOut:
+@router.post('/categories', response_model=schemas.CategoryOut, status_code=201)
+def categories_add(category: schemas.CategoryIn, db_session: DbSession):
     """Creates a new category"""
-    result = category_create(name=category.name, description=category.description)
-    rows = category_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    new_category = next(rows)
-    return CategoryOut(
-        id=new_category[0],
-        name=new_category[1],
-        description=new_category[2],
-    )
+    return category_create(db_session, category.name, category.description)
 
 
-@router.get('/categories/{category_id}')
-def categories_retrieve(category_id: int) -> CategoryOut:
+@router.get('/categories/{category_id}', response_model=schemas.CategoryOut)
+def categories_retrieve(category_id: int, db_session: DbSession):
     """Retrieves a category"""
-    rows = category_read(_id=category_id)
-    rows = islice(rows, 1, None)  # exclude header
-    category = next(rows)
-    return CategoryOut(
-        id=category[0],
-        name=category[1],
-        description=category[2],
-    )
+    category = category_read(db_session, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail='Not found')
+
+    return category
 
 
-@router.put('/categories/{category_id}', response_model=CategoryOut)
-def categories_save(category_id: int, category: CategoryOut) -> CategoryOut:
+@router.put('/categories/{category_id}', response_model=schemas.CategoryOut)
+def categories_save(category_id: int, category: schemas.CategoryOut, db_session: DbSession):
     """Updates a category instance"""
     # TODO: use CategoryIn
-    category_update(category_id, category.name, category.description)
-    # Retrieve
-    rows = category_read(_id=category_id)
-    rows = islice(rows, 1, None)  # exclude header
-    category = next(rows)
-    return CategoryOut(
-        id=category[0],
-        name=category[1],
-        description=category[2],
-    )
+    updated_category = category_update(db_session, category_id, category.name, category.description)
+    return updated_category
 
 
-@router.get('/tasks')
-def tasks_list() -> list[TaskOut]:
-    rows = task_list()
-    return [TaskOut(
-        id=row[0],
-        name=row[1],
-        category=CategoryMinimal(
-            id=row[2],
-            name=row[3],
+@router.get('/tasks', response_model=list[schemas.TaskOut])
+def tasks_list(db_session: DbSession):
+    rows = task_list(db_session)
+    return [schemas.TaskOut(
+        id=row.id,
+        name=row.name,
+        category=schemas.CategoryMinimal(
+            id=row.category_id,
+            name=row.category_name,
         ),
-        is_current=row[4],
-    ) for row in islice(rows, 1, None)]
+        is_current=row.is_current,
+    ) for row in rows]
 
 
-@router.post('/tasks', response_model=TaskOut, status_code=201)
-def tasks_add(task: TaskIn) -> TaskOut:
+@router.post('/tasks', response_model=schemas.TaskOut, status_code=201)
+def tasks_add(task: schemas.TaskIn, db_session: DbSession):
     """Creates a new task"""
-    result = task_add(name=task.name, category_id=task.category.id)
-
-    rows = task_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    new_task = next(rows)
-    return TaskOut(
-        id=new_task[0],
-        name=new_task[1],
-        category=CategoryMinimal(
-            id=new_task[2],
-            name=new_task[3],
+    new_task = task_create(db_session, task.name, task.category.id)
+    return schemas.TaskOut(
+        id=new_task.id,
+        name=new_task.name,
+        category=schemas.CategoryMinimal(
+            id=new_task.category_id,
+            name=new_task.category_name,
         ),
-        is_current=new_task[4],
+        is_current=new_task.is_current,
     )
 
 
-@router.get('/tasks/{task_id}', response_model=TaskOut)
-def tasks_retrieve(task_id: int) -> TaskOut:
+@router.get('/tasks/{task_id}', response_model=schemas.TaskOut)
+def tasks_retrieve(task_id: int, db_session: DbSession):
     """Retrieves a task"""
-    rows = task_read(_id=task_id)
-    rows = islice(rows, 1, None)  # exclude header
-    task = next(rows)
-    return TaskOut(
-        id=task[0],
-        name=task[1],
-        category=CategoryMinimal(
-            id=task[2],
-            name=task[3],
+    task = task_read(db_session, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail='Not found')
+
+    return schemas.TaskOut(
+        id=task.id,
+        name=task.name,
+        category=schemas.CategoryMinimal(
+            id=task.category_id,
+            name=task.category_name,
         ),
-        is_current=task[4],
+        is_current=task.is_current,
     )
 
 
-@router.put('/tasks/{task_id}', response_model=TaskOut)
-def tasks_save(task_id: int, task: TaskIn) -> TaskOut:
+@router.put('/tasks/{task_id}', response_model=schemas.TaskOut)
+def tasks_save(task_id: int, task: schemas.TaskIn, db_session: DbSession):
     """Updates a task instance"""
-    task_update(task_id, task.name, task.category.id)
-    # Retrieve
-    rows = task_read(_id=task_id)
-    rows = islice(rows, 1, None)  # exclude header
-    task = next(rows)
-    return TaskOut(
-        id=task[0],
-        name=task[1],
-        category=CategoryMinimal(
-            id=task[2],
-            name=task[3],
+    updated_task = task_update(db_session, task_id, task.name, task.category.id)
+    return schemas.TaskOut(
+        id=updated_task.id,
+        name=updated_task.name,
+        category=schemas.CategoryMinimal(
+            id=updated_task.category_id,
+            name=updated_task.category_name,
         ),
-        is_current=task[4],
+        is_current=updated_task.is_current,
     )
 
 
-@router.get('/work/report_by_category')
+@router.get('/work/report_by_category', response_model=list[schemas.WorkReportCategory])
 def get_work_report_by_category(
+    db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> list[WorkReportCategory]:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
-    rows = work_get_report_category(start_datetime, end_datetime)
-    return [WorkReportCategory(
-        category=CategoryMinimal(
+    rows = work_get_report_category(db_session, start_datetime, end_datetime)
+    return [schemas.WorkReportCategory(
+        category=schemas.CategoryMinimal(
             id=row[0],
             name=row[1],
         ),
         time=row[2],
-    ) for row in islice(rows, 1, None)]
+    ) for row in rows]
 
 
-@router.get('/work/report_by_task')
+@router.get('/work/report_by_task', response_model=list[schemas.WorkReportTask])
 def get_work_report_by_task(
+    db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> list[WorkReportTask]:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
-    rows = work_get_report_task(start_datetime, end_datetime)
-    return [WorkReportTask(
-        task=TaskWithCategoryMinimal(
+    rows = work_get_report_task(db_session, start_datetime, end_datetime)
+    return [schemas.WorkReportTask(
+        task=schemas.TaskWithCategoryMinimal(
             id=row[0],
             name=row[1],
-            category=CategoryMinimal(
+            category=schemas.CategoryMinimal(
                 id=row[2],
                 name=row[3],
             )
         ),
         time=row[4],
-    ) for row in islice(rows, 1, None)]
+    ) for row in rows]
 
 
-@router.get('/work/report_total')
+@router.get('/work/report_total', response_model=schemas.WorkReportTotal)
 def get_work_report_total(
+    db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> WorkReportTotal:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
-        start_datetime, end_datetime = get_default_report_datetime_range()
+        start_datetime, end_datetime = _get_default_report_datetime_range()
 
-    rows = work_get_report_total(start_datetime, end_datetime)
-    rows = islice(rows, 1, None)
-    row = next(rows)
+    rows = work_get_report_total(db_session, start_datetime, end_datetime)
+    row = rows[0]
 
-    return WorkReportTotal(
+    return schemas.WorkReportTotal(
         time=row[0],
     )
 
 
-@router.post('/work/items/', status_code=201)
-def work_items_add(work_item: WorkItem) -> WorkItem:
-    work_add(work_item.start_dt, work_item.end_dt, work_item.task_id)
+@router.post('/work/items/', response_model=schemas.WorkItem, status_code=201)
+def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
+    work_item_create(db_session, work_item.start_dt, work_item.end_dt, work_item.task_id)
+    # FIXME: return the object after creation
+    # TODO: add validation: conflict with existing work items
     return work_item
 
 
-@router.post('/work/start', response_model=WorkItemOut, status_code=201)
-def work_start(work_start: WorkStart) -> WorkItemOut:
+@router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
+def work_start(work_start: schemas.WorkStart, db_session: DbSession):
     print(work_start)
     # TODO: handle 'Cannot start work: already started'
-    result = db_work_start(work_start.task_id, start=work_start.start)
+    started_work_item = work_item_start(db_session, work_start.task_id, start=work_start.start)
 
-    rows = work_read(_id=result)
-    rows = islice(rows, 1, None)  # exclude header
-    started_work_item = next(rows)
-    start_dt = ts_to_dt(started_work_item[2])
-
-    return WorkItemOut(
-        id=started_work_item[0],
-        task_id=started_work_item[1],
-        start_dt=start_dt,
+    return schemas.WorkItemOut(
+        id=started_work_item.id,
+        task_id=started_work_item.task_id,
+        start_dt=ts_to_dt(started_work_item.start_timestamp),
         end_dt=None,  # end dt of the started work item always is None
     )
 
 
 @router.post('/work/stop_current', status_code=200)
-def work_stop_current() -> None:
+def work_stop_current(db_session: DbSession):
     # TODO: handle error
-    db_work_stop_current()
+    work_item_stop_current(db_session)
 
 
+# Initialize API
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -337,6 +251,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(router)
 
 
