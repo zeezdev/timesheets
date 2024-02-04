@@ -250,12 +250,6 @@ def work_get_report_category(db_session: Session, start_dt: datetime, end_dt: da
             'now_ts': now_ts,
             'end_ts': end_ts,
         }),
-        # start_ts, start_ts,  # WHEN (...) END start_ts
-        # now_ts, end_ts,  # WHEN (...) END end_ts
-        # end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
-        # start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
-        # now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
-        # start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     ).all()
 
 
@@ -291,12 +285,6 @@ def work_get_report_task(db_session: Session, start_dt: datetime, end_dt: dateti
             end_ts=end_ts,
             now_ts=now_ts,
         ),
-        # start_ts, start_ts,  # WHEN (...) END start_ts
-        # now_ts, end_ts,  # WHEN (...) END end_ts
-        # end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
-        # start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
-        # now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
-        # start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     ).all()
 
 
@@ -328,10 +316,4 @@ def work_get_report_total(db_session: Session, start_dt: datetime, end_dt: datet
             end_ts=end_ts,
             now_ts=now_ts,
         ),
-        # start_ts, start_ts,  # WHEN (...) END start_ts
-        # now_ts, end_ts,  # WHEN (...) END end_ts
-        # end_ts, now_ts,  # THEN ? ELSE COALESCE(wi.end_timestamp, ?)
-        # start_ts, end_ts,  # wi.start_timestamp >= ? AND wi.start_timestamp < ?
-        # now_ts, start_ts, now_ts, end_ts,  # COALESCE(wi.end_timestamp, ?) > ? AND COALESCE(wi.end_timestamp, ?) <= ?
-        # start_ts, end_ts,  # OR (wi.start_timestamp < ? AND wi.end_timestamp > ?)
     ).all()

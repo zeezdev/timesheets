@@ -18,25 +18,12 @@ def session_factory():
 class CategoryFactory(SQLAlchemyModelFactory):
     class Meta:
         model = Category
-        # sqlalchemy_session = Session
         sqlalchemy_session_factory = session_factory
         sqlalchemy_session = None
         sqlalchemy_session_persistence = 'flush'
-        # sqlalchemy_session_persistence = None
 
     name = Sequence(lambda n: f'Category#{n}')
     description = factory.Faker('sentence')
-
-    # @factory.post_generation
-    # def tasks(self, create, extracted, **kwargs):
-    #     if not create:
-    #         return
-    #
-    #     if extracted is None:
-    #         extracted = [TaskFactory(category=self)]
-    # #
-    # #     if extracted:
-    # #         self.tasks.add(*extracted)
 
 
 class TaskFactory(SQLAlchemyModelFactory):
@@ -55,15 +42,11 @@ class TaskFactory(SQLAlchemyModelFactory):
             return
 
         if extracted is None:
-            extracted = [WorkItemFactory(task=self)]
-        #
-        # if extracted:
-        #     self.work_items.add(*extracted)
+            WorkItemFactory(task=self)
 
 
 def start_timestamp(n):
-    result = get_now_timestamp() + (n * 300)
-    # result = init_start_timestamp + (n * 300)  # 5min.
+    result = get_now_timestamp() + (n * 300)  # 5min.
     return result
 
 
