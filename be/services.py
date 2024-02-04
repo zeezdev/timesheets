@@ -19,9 +19,8 @@ def category_create(db_session: Session, name: str, description: str | None) -> 
     obj = Category(name=name, description=description)
     db_session.add(obj)
     db_session.flush()
-    # return obj
-    # db_session.refresh(obj)
-    return category_read(db_session, obj.id)
+    db_session.refresh(obj)
+    return obj
 
 
 def category_delete(db_session: Session, id_: int) -> None:
@@ -167,22 +166,24 @@ def work_item_read(db_session: Session, id_: int) -> WorkItem | None:
     return db_session.query(WorkItem).filter(WorkItem.id == id_).one_or_none()
 
 
-def work_item_start(db_session: Session, task_id: int, start: int | None) -> WorkItem | None:
+def work_item_start(db_session: Session, task_id: int, start: int | None) -> WorkItem:
     """
     SELECT id FROM main.work_items WHERE end_timestamp IS NULL
     INSERT INTO main.work_items (task_id, start_timestamp) VALUES (?,?), task_id, start
+    # FIXME: this the same as `work_item_create` but from now
     """
     started_work_item = db_session.query(WorkItem).filter(WorkItem.end_timestamp.is_(None)).one_or_none()
 
     # Validate active work
     if started_work_item is not None:
-        raise Exception('Cannont start work: already started')
+        raise Exception('Cannot start work: already started')
 
     start = start or get_now_timestamp()
     obj = WorkItem(task_id=task_id, start_timestamp=start)
     db_session.add(obj)
     db_session.flush()
-    return work_item_read(db_session, obj.id)
+    db_session.refresh(obj)
+    return obj
 
 
 def work_item_stop_current(db_session: Session) -> None:
@@ -201,7 +202,7 @@ def work_item_stop_current(db_session: Session) -> None:
     logger.info('Work stopped')
 
 
-def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, task_id: int) -> WorkItem | None:
+def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, task_id: int) -> WorkItem:
     """
     INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?,?,?), task_id, start_ts, end_ts
     """
@@ -214,7 +215,8 @@ def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, 
     )
     db_session.add(obj)
     db_session.flush()
-    return work_item_read(db_session, obj.id)
+    db_session.refresh(obj)
+    return obj
 
 
 def work_item_delete(db_session: Session, id_: int) -> None:

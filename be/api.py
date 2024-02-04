@@ -5,6 +5,8 @@ from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+import schemas
+from dt import ts_to_dt
 from services import (
     category_list,
     category_create,
@@ -21,9 +23,7 @@ from services import (
     work_get_report_task,
     work_get_report_total,
 )
-from dt import ts_to_dt
-from schemas import CategoryIn, CategoryOut, CategoryMinimal, TaskIn, TaskOut, TaskWithCategoryMinimal, \
-    WorkReportCategory, WorkReportTask, WorkReportTotal, WorkItem, WorkItemOut, WorkStart
+
 
 # https://fastapi.tiangolo.com/tutorial/cors/
 origins = [
@@ -36,6 +36,7 @@ origins = [
 router = APIRouter(prefix='/api')
 
 
+# Dependency
 def get_db():
     from database import SessionLocal, db_session_context
 
@@ -65,7 +66,7 @@ def _get_default_report_datetime_range() -> tuple[datetime, datetime]:
 
     FIXME: make start day configurable
     """
-    # Get report for the last month
+    # Get the report for the last month
     now = datetime.now()
     curr_month = now.month
     curr_year = now.year
@@ -75,61 +76,43 @@ def _get_default_report_datetime_range() -> tuple[datetime, datetime]:
     return start, end
 
 
-@router.get('/categories', summary='Get all categories.')
-def categories_list(db_session: DbSession) -> list[CategoryOut]:
+@router.get('/categories', response_model=list[schemas.CategoryOut], summary='Get all categories.')
+def categories_list(db_session: DbSession):
     """Returns the list of categories"""
-    rows = category_list(db_session)
-    return [CategoryOut(
-        id=row.id,
-        name=row.name,
-        description=row.description,
-    ) for row in rows]
+    return category_list(db_session)
 
 
-@router.post('/categories', response_model=CategoryOut, status_code=201)
-def categories_add(category: CategoryIn, db_session: DbSession) -> CategoryOut:
+@router.post('/categories', response_model=schemas.CategoryOut, status_code=201)
+def categories_add(category: schemas.CategoryIn, db_session: DbSession):
     """Creates a new category"""
-    category = category_create(db_session, category.name, category.description)
-    return CategoryOut(
-        id=category.id,
-        name=category.name,
-        description=category.description,
-    )
+    return category_create(db_session, category.name, category.description)
 
 
-@router.get('/categories/{category_id}')
-def categories_retrieve(category_id: int, db_session: DbSession) -> CategoryOut:
+@router.get('/categories/{category_id}', response_model=schemas.CategoryOut)
+def categories_retrieve(category_id: int, db_session: DbSession):
     """Retrieves a category"""
     category = category_read(db_session, category_id)
     if category is None:
         raise HTTPException(status_code=404, detail='Not found')
 
-    return CategoryOut(
-        id=category.id,
-        name=category.name,
-        description=category.description,
-    )
+    return category
 
 
-@router.put('/categories/{category_id}', response_model=CategoryOut)
-def categories_save(category_id: int, category: CategoryOut, db_session: DbSession) -> CategoryOut:
+@router.put('/categories/{category_id}', response_model=schemas.CategoryOut)
+def categories_save(category_id: int, category: schemas.CategoryOut, db_session: DbSession):
     """Updates a category instance"""
     # TODO: use CategoryIn
     updated_category = category_update(db_session, category_id, category.name, category.description)
-    return CategoryOut(
-        id=updated_category.id,
-        name=updated_category.name,
-        description=updated_category.description,
-    )
+    return updated_category
 
 
-@router.get('/tasks')
-def tasks_list(db_session: DbSession) -> list[TaskOut]:
+@router.get('/tasks', response_model=list[schemas.TaskOut])
+def tasks_list(db_session: DbSession):
     rows = task_list(db_session)
-    return [TaskOut(
+    return [schemas.TaskOut(
         id=row.id,
         name=row.name,
-        category=CategoryMinimal(
+        category=schemas.CategoryMinimal(
             id=row.category_id,
             name=row.category_name,
         ),
@@ -137,14 +120,14 @@ def tasks_list(db_session: DbSession) -> list[TaskOut]:
     ) for row in rows]
 
 
-@router.post('/tasks', response_model=TaskOut, status_code=201)
-def tasks_add(task: TaskIn, db_session: DbSession) -> TaskOut:
+@router.post('/tasks', response_model=schemas.TaskOut, status_code=201)
+def tasks_add(task: schemas.TaskIn, db_session: DbSession):
     """Creates a new task"""
     new_task = task_create(db_session, task.name, task.category.id)
-    return TaskOut(
+    return schemas.TaskOut(
         id=new_task.id,
         name=new_task.name,
-        category=CategoryMinimal(
+        category=schemas.CategoryMinimal(
             id=new_task.category_id,
             name=new_task.category_name,
         ),
@@ -152,17 +135,17 @@ def tasks_add(task: TaskIn, db_session: DbSession) -> TaskOut:
     )
 
 
-@router.get('/tasks/{task_id}', response_model=TaskOut)
-def tasks_retrieve(task_id: int, db_session: DbSession) -> TaskOut:
+@router.get('/tasks/{task_id}', response_model=schemas.TaskOut)
+def tasks_retrieve(task_id: int, db_session: DbSession):
     """Retrieves a task"""
     task = task_read(db_session, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail='Not found')
 
-    return TaskOut(
+    return schemas.TaskOut(
         id=task.id,
         name=task.name,
-        category=CategoryMinimal(
+        category=schemas.CategoryMinimal(
             id=task.category_id,
             name=task.category_name,
         ),
@@ -170,14 +153,14 @@ def tasks_retrieve(task_id: int, db_session: DbSession) -> TaskOut:
     )
 
 
-@router.put('/tasks/{task_id}', response_model=TaskOut)
-def tasks_save(task_id: int, task: TaskIn, db_session: DbSession) -> TaskOut:
+@router.put('/tasks/{task_id}', response_model=schemas.TaskOut)
+def tasks_save(task_id: int, task: schemas.TaskIn, db_session: DbSession):
     """Updates a task instance"""
     updated_task = task_update(db_session, task_id, task.name, task.category.id)
-    return TaskOut(
+    return schemas.TaskOut(
         id=updated_task.id,
         name=updated_task.name,
-        category=CategoryMinimal(
+        category=schemas.CategoryMinimal(
             id=updated_task.category_id,
             name=updated_task.category_name,
         ),
@@ -185,20 +168,20 @@ def tasks_save(task_id: int, task: TaskIn, db_session: DbSession) -> TaskOut:
     )
 
 
-@router.get('/work/report_by_category')
+@router.get('/work/report_by_category', response_model=list[schemas.WorkReportCategory])
 def get_work_report_by_category(
     db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> list[WorkReportCategory]:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
         start_datetime, end_datetime = _get_default_report_datetime_range()
 
     rows = work_get_report_category(db_session, start_datetime, end_datetime)
-    return [WorkReportCategory(
-        category=CategoryMinimal(
+    return [schemas.WorkReportCategory(
+        category=schemas.CategoryMinimal(
             id=row[0],
             name=row[1],
         ),
@@ -206,23 +189,23 @@ def get_work_report_by_category(
     ) for row in rows]
 
 
-@router.get('/work/report_by_task')
+@router.get('/work/report_by_task', response_model=list[schemas.WorkReportTask])
 def get_work_report_by_task(
     db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> list[WorkReportTask]:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
         start_datetime, end_datetime = _get_default_report_datetime_range()
 
     rows = work_get_report_task(db_session, start_datetime, end_datetime)
-    return [WorkReportTask(
-        task=TaskWithCategoryMinimal(
+    return [schemas.WorkReportTask(
+        task=schemas.TaskWithCategoryMinimal(
             id=row[0],
             name=row[1],
-            category=CategoryMinimal(
+            category=schemas.CategoryMinimal(
                 id=row[2],
                 name=row[3],
             )
@@ -231,12 +214,12 @@ def get_work_report_by_task(
     ) for row in rows]
 
 
-@router.get('/work/report_total')
+@router.get('/work/report_total', response_model=schemas.WorkReportTotal)
 def get_work_report_total(
     db_session: DbSession,
     start_datetime: Annotated[datetime | None, Query()] = None,
     end_datetime: Annotated[datetime | None, Query()] = None,
-) -> WorkReportTotal:
+):
     assert start_datetime and end_datetime or (not start_datetime and not end_datetime)  # FIXME: 400
 
     if start_datetime is None and end_datetime is None:
@@ -245,35 +228,35 @@ def get_work_report_total(
     rows = work_get_report_total(db_session, start_datetime, end_datetime)
     row = rows[0]
 
-    return WorkReportTotal(
+    return schemas.WorkReportTotal(
         time=row[0],
     )
 
 
-@router.post('/work/items/', status_code=201)
-def work_items_add(work_item: WorkItem, db_session: DbSession) -> WorkItem:
+@router.post('/work/items/', response_model=schemas.WorkItem, status_code=201)
+def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
     work_item_create(db_session, work_item.start_dt, work_item.end_dt, work_item.task_id)
     # FIXME: return the object after creation
+    # TODO: add validation: conflict with existing work items
     return work_item
 
 
-@router.post('/work/start', response_model=WorkItemOut, status_code=201)
-def work_start(work_start: WorkStart, db_session: DbSession) -> WorkItemOut:
+@router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
+def work_start(work_start: schemas.WorkStart, db_session: DbSession):
     print(work_start)
     # TODO: handle 'Cannot start work: already started'
     started_work_item = work_item_start(db_session, work_start.task_id, start=work_start.start)
-    start_dt = ts_to_dt(started_work_item.start_timestamp)
 
-    return WorkItemOut(
+    return schemas.WorkItemOut(
         id=started_work_item.id,
         task_id=started_work_item.task_id,
-        start_dt=start_dt,
+        start_dt=ts_to_dt(started_work_item.start_timestamp),
         end_dt=None,  # end dt of the started work item always is None
     )
 
 
 @router.post('/work/stop_current', status_code=200)
-def work_stop_current(db_session: DbSession) -> None:
+def work_stop_current(db_session: DbSession):
     # TODO: handle error
     work_item_stop_current(db_session)
 

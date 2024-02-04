@@ -218,7 +218,6 @@ def test_work_start(session, frozen_ts):
     task = TaskFactory()
     expected_start_dt = ts_to_dt(frozen_ts).replace(microsecond=0).isoformat()
 
-
     # Act
     response = client.post('/api/work/start', json={'task_id': task.id})
 

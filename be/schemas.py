@@ -1,4 +1,3 @@
-# FIXME: try to use `orm_mode = True` in models
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -8,9 +7,6 @@ class CategoryBase(BaseModel):
     name: str
     description: str | None = None
 
-    # class Config:
-    #     orm_mode = True
-
 
 class CategoryIn(CategoryBase):
     pass
@@ -18,6 +14,9 @@ class CategoryIn(CategoryBase):
 
 class CategoryOut(CategoryBase):
     id: int
+
+    class Config:
+        orm_mode = True
 
 
 class CategoryMinimal(BaseModel):
@@ -29,9 +28,6 @@ class TaskIn(BaseModel):
     name: str
     category: CategoryMinimal
 
-    # class Config:
-    #     orm_mode = True
-
 
 class TaskOut(BaseModel):
     id: int
@@ -39,55 +35,41 @@ class TaskOut(BaseModel):
     is_current: int
     category: CategoryMinimal
 
-    # class Config:
-    #     orm_mode = True
-
 
 class TaskWithCategoryMinimal(BaseModel):
     id: int
     name: str
     category: CategoryMinimal
 
-    # class Config:
-    #     orm_mode = True
-
 
 class WorkReportCategory(BaseModel):
     category: CategoryMinimal
     time: float
-
-    # class Config:
-    #     orm_mode = True
 
 
 class WorkReportTask(BaseModel):
     task: TaskWithCategoryMinimal
     time: float
 
-    # class Config:
-    #     orm_mode = True
-
 
 class WorkReportTotal(BaseModel):
     time: float
 
-    # class Config:
-    #     orm_mode = True
+
+class WorkItemBase(BaseModel):
+    task_id: int
 
 
-class WorkItem(BaseModel):
+class WorkItem(WorkItemBase):
     start_dt: datetime
     end_dt: datetime | None
-    task_id: int
-
-    # class Config:
-    #     orm_mode = True
 
 
-class WorkItemOut(WorkItem):
+class WorkItemOut(WorkItemBase):
     id: int
+    start_dt: datetime
+    end_dt: datetime | None
 
 
-class WorkStart(BaseModel):
-    task_id: int
+class WorkStart(WorkItemBase):
     start: int | None
