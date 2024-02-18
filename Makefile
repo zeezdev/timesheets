@@ -26,6 +26,10 @@ up_be:
 run_init:
 	docker-compose run ts-be python main.py --init
 
+make_migrations:
+	# make make_migrations name="My migration"
+	docker-compose run ts-be alembic revision --autogenerate -m "${name}"
+
 run_be_pytest:
 	docker-compose run ts-be pytest
 
