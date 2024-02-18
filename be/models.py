@@ -1,5 +1,5 @@
 import sqlalchemy.sql.elements
-from sqlalchemy import Text, ForeignKey
+from sqlalchemy import Text, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -8,15 +8,6 @@ class Base(DeclarativeBase):
 
 
 class Category(Base):
-    """
-    execute_statement('''
-    CREATE TABLE IF NOT EXISTS main.categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT
-    )''')
-    """
-
     __tablename__ = 'categories'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -29,21 +20,11 @@ class Category(Base):
 
 
 class Task(Base):
-    """
-    execute_statement('''
-    CREATE TABLE IF NOT EXISTS main.tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    category_id INTEGER,
-    FOREIGN KEY (category_id)
-        REFERENCES categories(id)
-            ON DELETE CASCADE ON UPDATE NO ACTION
-    )''')
-    """
     __tablename__ = 'tasks'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(Text(), nullable=False, unique=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean(), default=False, server_default='f')
     category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
     category: Mapped['Category'] = relationship(back_populates='tasks')
     work_items: Mapped[list['WorkItem']] = relationship(back_populates='task', cascade='all, delete-orphan')
@@ -57,19 +38,6 @@ class Task(Base):
 
 
 class WorkItem(Base):
-    """
-    execute_statement('''
-    CREATE TABLE IF NOT EXISTS main.work_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER,
-    -- comment TEXT,
-    start_timestamp INTEGER NOT NULL,
-    end_timestamp INTEGER DEFAULT NULL,
-    FOREIGN KEY (task_id)
-        REFERENCES tasks(id)
-            ON DELETE CASCADE ON UPDATE NO ACTION
-    )''')
-    """
     __tablename__ = 'work_items'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
