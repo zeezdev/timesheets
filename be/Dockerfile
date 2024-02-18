@@ -3,9 +3,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY ./*.py .
-COPY ./alembic .
+COPY ./alembic ./alembic
 # TODO: exclude tests in the production
-COPY ./tests .
+COPY ./tests ./tests
 COPY alembic.ini .
 COPY requirements.txt .
 
