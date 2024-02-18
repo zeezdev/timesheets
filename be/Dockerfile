@@ -6,7 +6,8 @@ COPY ./*.py .
 COPY ./alembic .
 # TODO: exclude tests in the production
 COPY ./tests .
-COPY requirements.txt requirements.txt
+COPY alembic.ini .
+COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
