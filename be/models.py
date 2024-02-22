@@ -1,6 +1,7 @@
 import sqlalchemy.sql.elements
 from sqlalchemy import Text, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.sql import false
 
 
 class Base(DeclarativeBase):
@@ -24,7 +25,7 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(Text(), nullable=False, unique=True)
-    is_archived: Mapped[bool] = mapped_column(Boolean(), default=False, server_default='f')
+    is_archived: Mapped[bool] = mapped_column(Boolean(), default=False, server_default=false())
     category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
     category: Mapped['Category'] = relationship(back_populates='tasks')
     work_items: Mapped[list['WorkItem']] = relationship(back_populates='task', cascade='all, delete-orphan')

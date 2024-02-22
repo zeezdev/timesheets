@@ -13,6 +13,9 @@ mat-form-field {
 .task-full-width {
   width: 100%;
 }
+.task-is-archived-container {
+  margin: 0 0 16px 8px;
+}
 
 /* Hide mat-form-field */
 .invisible{

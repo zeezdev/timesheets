@@ -35,6 +35,7 @@ class TaskFactory(SQLAlchemyModelFactory):
 
     name = Sequence(lambda n: f'Task#{n}')
     category = factory.SubFactory(CategoryFactory)
+    is_archived = factory.Faker('boolean')
 
     @factory.post_generation
     def work_items(self, create, extracted, **kwargs):

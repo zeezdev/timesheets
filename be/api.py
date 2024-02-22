@@ -98,6 +98,7 @@ def tasks_list(db_session: DbSession):
             name=row.category_name,
         ),
         is_current=row.is_current,
+        is_archived=row.is_archived,
     ) for row in rows]
 
 
@@ -113,6 +114,7 @@ def tasks_add(task: schemas.TaskIn, db_session: DbSession):
             name=new_task.category_name,
         ),
         is_current=new_task.is_current,
+        is_archived=new_task.is_archived,
     )
 
 
@@ -131,13 +133,14 @@ def tasks_retrieve(task_id: int, db_session: DbSession):
             name=task.category_name,
         ),
         is_current=task.is_current,
+        is_archived=task.is_archived,
     )
 
 
 @router.put('/tasks/{task_id}', response_model=schemas.TaskOut)
-def tasks_save(task_id: int, task: schemas.TaskIn, db_session: DbSession):
+def tasks_save(task_id: int, task: schemas.TaskUpdate, db_session: DbSession):
     """Updates a task instance"""
-    updated_task = task_update(db_session, task_id, task.name, task.category.id)
+    updated_task = task_update(db_session, task_id, task.name, task.category.id, task.is_archived)
     return schemas.TaskOut(
         id=updated_task.id,
         name=updated_task.name,
@@ -146,6 +149,7 @@ def tasks_save(task_id: int, task: schemas.TaskIn, db_session: DbSession):
             name=updated_task.category_name,
         ),
         is_current=updated_task.is_current,
+        is_archived=updated_task.is_archived,
     )
 
 

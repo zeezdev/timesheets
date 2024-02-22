@@ -47,6 +47,13 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+    <div class="task-is-archived-container" [ngClass]="{'invisible': task == null}">
+      <mat-checkbox
+        id="is_archived"
+        name="is_archived"
+        [(ngModel)]="task && task.is_archived"
+      >Is archived</mat-checkbox>
+    </div>
     <mat-card-actions>
       <button mat-raised-button type="submit" color="primary" id="task-submit">Save</button>
     </mat-card-actions>
