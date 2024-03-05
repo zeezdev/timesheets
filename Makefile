@@ -54,7 +54,7 @@ push_web:
 	docker-compose -f production.yaml push ts-web
 
 up:
-	docker-compose -f production.yaml up ts-be ts-web
+	docker-compose -f production.yaml up ts-be ts-web --remove-orphans
 
 backup_db:
 	$(eval DATE := $(shell date +%Y%m%d))

@@ -88,8 +88,8 @@ def categories_save(category_id: int, category: schemas.CategoryOut, db_session:
 
 
 @router.get('/tasks', response_model=list[schemas.TaskOut])
-def tasks_list(db_session: DbSession):
-    rows = task_list(db_session)
+def tasks_list(db_session: DbSession, is_archived: bool | None = None):
+    rows = task_list(db_session, is_archived=is_archived)
     return [schemas.TaskOut(
         id=row.id,
         name=row.name,

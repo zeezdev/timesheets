@@ -12,6 +12,7 @@ export class TaskListComponent implements OnInit {
   tasks: Task[] = [];
   displayedColumns: string[] = ['id', 'name', 'category_name', 'actions'];
   hasActiveTask: boolean = false;
+  showArchived: boolean = false;
 
   constructor(private taskService: TaskService, private workService: WorkService) { }
 
@@ -20,7 +21,8 @@ export class TaskListComponent implements OnInit {
   }
 
   getTasks() {
-    this.taskService.getTasks().subscribe(
+    const isArchived = this.showArchived ? undefined : false;
+    this.taskService.getTasks(isArchived).subscribe(
       tasks => {
         this.hasActiveTask = false;
         for (const task of tasks) {

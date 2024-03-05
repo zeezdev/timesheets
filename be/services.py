@@ -76,7 +76,7 @@ def task_update(db_session: Session, id_: int, name: str, category_id: int, is_a
     return task_read(db_session, id_)
 
 
-def task_list(db_session: Session) -> Sequence[Row]:
+def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[Row]:
     """
     'SELECT t.id, t.name, t.category_id, c.name AS category_name, t.is_archived, '
     'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
@@ -105,6 +105,10 @@ def task_list(db_session: Session) -> Sequence[Row]:
         onclause=and_(Task.id == WorkItem.task_id, WorkItem.end_timestamp.is_(None)),
         isouter=True,  # LEFT OUTER JOIN
     ).order_by(Task.id)
+    # Filtration
+    if is_archived is not None:
+        smth = smth.filter(Task.is_archived == is_archived)
+
     rows = db_session.execute(smth).all()
     return rows
 

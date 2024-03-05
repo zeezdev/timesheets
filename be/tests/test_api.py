@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from api import app
@@ -131,6 +132,24 @@ def test_tasks_list(session):
             'is_archived': t.is_archived,
         } for t in tasks
     ]
+
+
+@pytest.mark.parametrize('is_archived', [True, False])
+def test_tasks_list_filtration(session, is_archived):
+    # Arrange
+    tasks = [
+        TaskFactory(is_archived=is_archived),
+        TaskFactory(is_archived=not is_archived),
+        TaskFactory(is_archived=is_archived),
+    ]
+    expected_ids = sorted([tasks[0].id, tasks[2].id])
+
+    # Act
+    response = client.get('/api/tasks', params={'is_archived': is_archived})
+
+    # Arrange
+    assert response.status_code == 200
+    assert sorted(map(lambda x: x['id'], response.json())) == expected_ids
 
 
 def test_tasks_retrieve(session):

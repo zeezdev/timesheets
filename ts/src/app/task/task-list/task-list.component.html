@@ -5,6 +5,11 @@
     <a routerLink="/tasks/add" routerLinkActive="active" ariaCurrentWhenActive="page">Create Task</a>
   </div>
 
+  <mat-checkbox
+    [(ngModel)]="showArchived"
+    (change)="getTasks()"
+  >Show archived</mat-checkbox>
+
   <table mat-table [dataSource]="tasks" class="mat-elevation-z8">
 
     <!-- Id Column -->
