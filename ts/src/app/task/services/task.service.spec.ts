@@ -40,6 +40,31 @@ describe('TaskService', () => {
       .toHaveBeenCalledOnceWith(taskService.tasksUrl, {params: {}});
   });
 
+  it('should return non archived tasks only (HttpClient called once)', (done: DoneFn) => {
+    const expectedTasks: Task[] = [
+      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: 1, is_archived: false},
+      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: 0, is_archived: false},
+    ];
+
+    httpClientSpy.get.and.returnValue(of(expectedTasks));
+
+    taskService.getTasks(false).subscribe({
+      next: tasks => {
+        expect(tasks)
+          .withContext('expected tasks')
+          .toEqual(expectedTasks);
+        done();
+      },
+      error: done.fail
+    });
+    expect(httpClientSpy.get.calls.count())
+      .withContext('one call')
+      .toBe(1);
+    expect(httpClientSpy.get)
+      .withContext('called once with')
+      .toHaveBeenCalledOnceWith(taskService.tasksUrl, {params: {is_archived: false}});
+  });
+
   it('should return an error when the server returns a 404', (done: DoneFn) => {
     const errorResponse = new HttpErrorResponse({
         error: 'test 404 error',
