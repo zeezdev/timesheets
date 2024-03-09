@@ -5,6 +5,8 @@ import {HttpClientTestingModule} from '@angular/common/http/testing';
 import {MatTableModule} from '@angular/material/table';
 import {TaskService} from '../services/task.service';
 import {WorkService} from '../../work/services/work.service';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {FormsModule} from '@angular/forms';
 
 describe('TaskListComponent', () => {
   let component: TaskListComponent;
@@ -15,6 +17,8 @@ describe('TaskListComponent', () => {
       imports: [
         HttpClientTestingModule,
         MatTableModule,
+        MatCheckboxModule,
+        FormsModule,
       ],
       declarations: [TaskListComponent],
       providers: [TaskService, WorkService],

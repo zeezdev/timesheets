@@ -37,7 +37,7 @@ describe('TaskService', () => {
       .toBe(1);
     expect(httpClientSpy.get)
       .withContext('called once with')
-      .toHaveBeenCalledOnceWith(taskService.tasksUrl);
+      .toHaveBeenCalledOnceWith(taskService.tasksUrl, {params: {}});
   });
 
   it('should return an error when the server returns a 404', (done: DoneFn) => {
