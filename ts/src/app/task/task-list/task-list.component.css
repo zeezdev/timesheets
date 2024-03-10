@@ -14,7 +14,16 @@ td {
   padding: 30px;
 }
 
+.task-list-actions {
+  display: flex;
+}
+
+.task-show-archived {
+  margin-left: auto;
+}
+
 .task-add {
+  flex: 1;
   margin-top: 8px;
   margin-bottom: 16px;
 }
