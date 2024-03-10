@@ -6,4 +6,5 @@ export interface Task {
     name?: string;
   };
   is_current?: number;
+  is_archived?: boolean;
 }

@@ -1,8 +1,17 @@
 <div class="mat-app-background basic-container">
   <h2>Tasks</h2>
 
-  <div class="task-add">
-    <a routerLink="/tasks/add" routerLinkActive="active" ariaCurrentWhenActive="page">Create Task</a>
+  <div class="task-list-actions">
+    <div class="task-add">
+      <a routerLink="/tasks/add" routerLinkActive="active" ariaCurrentWhenActive="page">Create Task</a>
+    </div>
+
+    <div class="task-show-archived">
+      <mat-checkbox
+        [(ngModel)]="showArchived"
+        (change)="getTasks()"
+      >Show archived</mat-checkbox>
+    </div>
   </div>
 
   <table mat-table [dataSource]="tasks" class="mat-elevation-z8">

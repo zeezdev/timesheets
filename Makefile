@@ -50,8 +50,18 @@ push_web:
 	docker-compose -f production.yaml push ts-web
 
 up:
-	docker-compose -f production.yaml up ts-be ts-web
+	docker-compose -f production.yaml up ts-be ts-web --remove-orphans
 
 backup_db:
 	$(eval DATE := $(shell date +%Y%m%d))
 	cp db/timesheet.db "db/timesheet.db.${DATE}"
+
+# Alembic
+
+alembic_revision_autogenerate:
+	# make make_migrations name="My migration"
+	docker-compose run ts-be alembic revision --autogenerate -m "${name}"
+
+alembic_upgrade_head:
+	# make make_migrations name="My migration"
+	docker-compose run ts-be alembic upgrade head

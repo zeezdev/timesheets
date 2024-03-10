@@ -19,6 +19,7 @@ import {of} from "rxjs";
 import {Category} from "../../category/services/category";
 import {Task} from "../services/task";
 import {ActivatedRoute} from "@angular/router";
+import {MatCheckboxModule} from "@angular/material/checkbox";
 
 describe('TaskFormComponent', () => {
   let component: TaskFormComponent;
@@ -43,13 +44,13 @@ describe('TaskFormComponent', () => {
   beforeEach(async () => {
     mockTaskService = jasmine.createSpyObj(['getTask', 'createTask', 'updateTask']);
     mockTaskService.getTask.and.returnValue(of({
-      id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}
+      id: 9, name: 'MyTask#9', category: {id: 2, name: 'MyCategory#2'}, is_archived: false
     } as Task));
     mockTaskService.updateTask.and.returnValue(of({
-      id: 9, name: 'UpdatedTask', category: {id: 3, name: 'MyCategory#3'}
+      id: 9, name: 'UpdatedTask', category: {id: 3, name: 'MyCategory#3'}, is_archived: false
     } as Task));
     mockTaskService.createTask.and.returnValue(of({
-      id: 9, name: 'NewTask', category: {id: 1, name: 'MyCategory#1'}
+      id: 9, name: 'NewTask', category: {id: 1, name: 'MyCategory#1'}, is_archived: false
     } as Task));
     mockRoute = jasmine.createSpyObj('', {}, {
       'paramMap': of( new Map([['id', '9']]))
@@ -76,6 +77,7 @@ describe('TaskFormComponent', () => {
         NgIf,
         ReactiveFormsModule,
         MatProgressSpinnerModule,
+        MatCheckboxModule,
       ],
       declarations: [TaskFormComponent],
       providers: [
@@ -101,6 +103,7 @@ describe('TaskFormComponent', () => {
     inputName = fixture.nativeElement.querySelector('#name');
     inputCategory = fixture.nativeElement.querySelector('#category_id');
     submitButton = fixture.nativeElement.querySelector('#task-submit');
+    // TODO: is_archived
 
     inject([OverlayContainer], (oc: OverlayContainer) => {
         containerElement = oc.getContainerElement();
@@ -255,7 +258,8 @@ describe('TaskFormComponent', () => {
         category: {
           id: 3,
           name: 'MyCategory#2', // FIXME
-        }
+        },
+        is_archived: false,
       } as Task);
     });
   }));

@@ -29,11 +29,18 @@ class TaskIn(BaseModel):
     category: CategoryMinimal
 
 
+class TaskUpdate(BaseModel):
+    name: str
+    category: CategoryMinimal
+    is_archived: bool
+
+
 class TaskOut(BaseModel):
     id: int
     name: str
-    is_current: int
     category: CategoryMinimal
+    is_current: int
+    is_archived: bool
 
 
 class TaskWithCategoryMinimal(BaseModel):

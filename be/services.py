@@ -65,19 +65,20 @@ def task_delete(db_session: Session, id_: int) -> None:
     db_session.query(Task).filter(Task.id == id_).delete()
 
 
-def task_update(db_session: Session, id_: int, name: str, category_id: int) -> Task | None:
-    """UPDATE main.tasks SET name=?, category_id=? WHERE id=?, name, category_id, id_"""
+def task_update(db_session: Session, id_: int, name: str, category_id: int, is_archived: bool) -> Row[tuple]:
+    """Update name, category_id, is_archived of the task by id_"""
     db_session.query(Task).filter(Task.id == id_).update({
         'name': name,
         'category_id': category_id,
+        'is_archived': is_archived,  # TODO: validate current task cannot be archived
     })
     db_session.commit()
     return task_read(db_session, id_)
 
 
-def task_list(db_session: Session) -> Sequence[Row]:
+def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[Row]:
     """
-    'SELECT t.id, t.name, t.category_id, c.name AS category_name,'
+    'SELECT t.id, t.name, t.category_id, c.name AS category_name, t.is_archived, '
     'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
     'FROM main.tasks AS t '
     'LEFT JOIN main.work_items AS w ON (t.id = w.task_id AND w.end_timestamp is NULL)'
@@ -89,6 +90,7 @@ def task_list(db_session: Session) -> Sequence[Row]:
         Task.name,
         Task.category_id,
         Category.name.label('category_name'),
+        Task.is_archived,
         case(
             (
                 WorkItem.id.is_(None),
@@ -103,6 +105,10 @@ def task_list(db_session: Session) -> Sequence[Row]:
         onclause=and_(Task.id == WorkItem.task_id, WorkItem.end_timestamp.is_(None)),
         isouter=True,  # LEFT OUTER JOIN
     ).order_by(Task.id)
+    # Filtration
+    if is_archived is not None:
+        smth = smth.filter(Task.is_archived == is_archived)
+
     rows = db_session.execute(smth).all()
     return rows
 
@@ -122,6 +128,7 @@ def task_read(db_session: Session, id_: int) -> Row[tuple] | None:
         Task.name,
         Task.category_id,
         Category.name.label('category_name'),
+        Task.is_archived,
         case(
             (
                 WorkItem.id.is_(None),

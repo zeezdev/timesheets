@@ -19,8 +19,12 @@ export class TaskService {
   ) { }
 
   /** GET tasks from the server */
-  getTasks(): Observable<Task[]> {
-    return this.http.get<Task[]>(this.tasksUrl)
+  getTasks(isArchived?: boolean): Observable<Task[]> {
+    const params = {};
+    if (isArchived !== undefined) {
+      params['is_archived'] = isArchived;
+    }
+    return this.http.get<Task[]>(this.tasksUrl, {params: params})
       .pipe(
         tap(tasks => this.log(`fetched tasks ${tasks}`)),
         catchError(handleError('getTasks'))

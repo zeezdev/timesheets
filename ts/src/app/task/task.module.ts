@@ -14,6 +14,7 @@ import {WorkService} from "../work/services/work.service";
 import {MatSelectModule} from "@angular/material/select";
 import {MatOptionModule} from "@angular/material/core";
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
+import {MatCheckboxModule} from "@angular/material/checkbox";
 
 @NgModule({
   declarations: [
@@ -36,6 +37,7 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
     NgIf,
     ReactiveFormsModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
   ],
   providers: [TaskService, WorkService],
 })
