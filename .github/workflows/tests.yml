@@ -7,12 +7,13 @@ on:
       - main
 
 env:
-  WEB_TEST_TAG: zeezdev/timesheet-web:test
+  PROD_TEST_TAG: zeezdev/timesheet:test
   BE_TEST_TAG: zeezdev/timesheet-be:test
   FE_TEST_TAG: zeezdev/timesheet-fe:test
 
 jobs:
-  docker-timesheet-web:
+  docker-timesheet-prod:
+    # Production container test build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -28,9 +29,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: web.Dockerfile
+          file: prod.Dockerfile
           push: false
-          tags: ${{ env.WEB_TEST_TAG }}
+          tags: ${{ env.PROD_TEST_TAG }}
   docker-timesheet-be:
     runs-on: ubuntu-latest
     steps:
