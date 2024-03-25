@@ -1,0 +1,34 @@
+{
+    "listeners": {
+        "*:8874": {
+            "pass": "applications/fastapi"
+        },
+        "*:8875": {
+            "pass": "routes"
+        }
+    },
+    "applications": {
+        "fastapi": {
+            "type": "python 3.11",
+            "path": "/app",
+            "home": "/usr/local",
+            "module": "api",
+            "callable": "app"
+        }
+    },
+    "routes": [
+        {
+            "match": {
+                "uri": "/api/*"
+            },
+            "action": {
+                "pass": "applications/fastapi"
+            }
+        },
+        {
+            "action": {
+                "share": "/www/static/$uri"
+            }
+        }
+    ]
+}
