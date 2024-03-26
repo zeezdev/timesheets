@@ -21,7 +21,7 @@ jobs:
     secrets: inherit
   release-prod:
     runs-on: ubuntu-latest
-    needs: [pytest-in-docker, docker-timesheet-prod]
+    needs: [test-timesheet-be, test-timesheet-fe, prod-build]
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v3
