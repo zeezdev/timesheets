@@ -1,8 +1,10 @@
+import re
 from datetime import datetime
 from typing import Annotated
 
 from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination, Page
 from sqlalchemy.orm import Session
 
 import schemas
@@ -23,6 +25,7 @@ from services import (
     work_get_report_category,
     work_get_report_task,
     work_get_report_total,
+    work_item_list,
 )
 
 
@@ -226,6 +229,33 @@ def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
     return work_item
 
 
+@router.get('/work/items/', response_model=Page[schemas.WorkItemOut], summary='Get all work items')
+def work_items_list(db_session: DbSession, order_by: list[str] = Query(None)):
+    order_by_map = {
+        'start_dt': 'start_timestamp',
+        'end_dt': 'end_timestamp',
+    }
+    service_order_by = []
+    for ob in order_by:
+        order_by_match = re.match(r'([+-]?)(\w+)', ob)
+        if order_by_match is None:
+            raise ValueError(f'Incorrect `order_by`: {ob}')
+        direction, order_field = order_by_match.groups()
+        service_field = f'{direction}{order_by_map.get(order_field, order_field)}'
+        service_order_by.append(service_field)
+
+    page = work_item_list(
+        db_session,
+        service_order_by,
+        transformer=lambda items: [{
+            'id': item.id,
+            'task_id': item.task_id,
+            'start_dt': ts_to_dt(item.start_timestamp),
+            'end_dt': item.end_timestamp and ts_to_dt(item.end_timestamp),
+        } for item in items],
+    )
+    return page
+
 @router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
 def work_start(work_start: schemas.WorkStart, db_session: DbSession):
     print(work_start)
@@ -248,6 +278,7 @@ def work_stop_current(db_session: DbSession):
 
 # Initialize API
 app = FastAPI()
+add_pagination(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

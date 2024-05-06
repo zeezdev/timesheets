@@ -25,9 +25,6 @@ docker_run_fe:
 build_be:
 	docker-compose build --no-cache ts-be
 
-push_be:
-	docker-compose push ts-be
-
 up_be:
 	docker-compose up ts-be
 
@@ -64,7 +61,13 @@ alembic_upgrade_head:
 # Production
 
 build_prod:
+	# Build the production image
 	docker build -t zeezdev/timesheet -f prod.Dockerfile .
 
 up:
+	# Run from the production image
 	docker run --rm -p 8874:8874 -p 8875:8875 -v ./db:/db --name ts-prod zeezdev/timesheet
+
+upd:
+	# Run from the production image as demon
+	docker run --rm -d -p 8874:8874 -p 8875:8875 -v ./db:/db --name ts-prod zeezdev/timesheet

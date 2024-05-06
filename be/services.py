@@ -1,9 +1,12 @@
 import logging
+import re
+from collections.abc import Callable
 from datetime import datetime
-from typing import Sequence, Type
+from typing import Sequence, Type, Any
 
-from sqlalchemy import Row, select, case, literal_column, and_, text
+from sqlalchemy import Row, select, case, literal_column, and_, text, desc
 from sqlalchemy.orm import Session
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 from dt import dt_to_ts, get_now_timestamp
 
@@ -149,8 +152,26 @@ def task_read(db_session: Session, id_: int) -> Row[tuple] | None:
 
 # WORK
 
-def work_item_list(db_session: Session) -> list[Type[WorkItem]]:
-    return db_session.query(WorkItem).order_by(WorkItem.start_timestamp).all()
+def work_item_list(db_session: Session, order_by: list[str], transformer: Callable) -> Any:
+    # order_by expression processing
+    ordering = []
+    for ob in order_by:
+        order_by_match = re.match(r'([+-]?)(\w+)', ob)
+        if order_by_match is None:
+            raise ValueError(f'Incorrect `order_by` element: {ob}')
+        direction, order_field = order_by_match.groups()
+        model_column = getattr(WorkItem, order_field, None)
+        if model_column is None:
+            raise ValueError(f'Cannot find model column for `order_by` element: {ob}')
+        if direction == '-':
+            model_column = desc(order_field)
+        ordering.append(model_column)
+
+    return paginate(
+        db_session,
+        select(WorkItem).order_by(*ordering),
+        transformer=transformer,
+    )
 
 
 def work_item_read(db_session: Session, id_: int) -> WorkItem | None:

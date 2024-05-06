@@ -10,6 +10,7 @@ import {CategoryModule} from './category/category.module';
 import {TaskModule} from './task/task.module';
 import {SharedModule} from './shared/shared.module';
 import {WorkModule} from './work/work.module';
+import {WorkItemModule} from './work-item/work-item.module';
 
 @NgModule({
   declarations: [
@@ -27,6 +28,7 @@ import {WorkModule} from './work/work.module';
     TaskModule,
     SharedModule,
     WorkModule,
+    WorkItemModule,
   ],
   bootstrap: [AppComponent]
 })
