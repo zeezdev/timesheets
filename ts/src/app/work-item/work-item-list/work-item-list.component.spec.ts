@@ -1,14 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { WorkItemListComponent } from './work-item-list.component';
+import {WorkItemService} from "../services/work-item.service";
+import {HttpClientTestingModule} from "@angular/common/http/testing";
+import {MatTableModule} from "@angular/material/table";
 
-describe('WorkItemComponent', () => {
+fdescribe('WorkItemComponent', () => {
   let component: WorkItemListComponent;
   let fixture: ComponentFixture<WorkItemListComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ WorkItemListComponent ]
+      imports: [
+        HttpClientTestingModule,
+        MatTableModule,
+      ],
+      declarations: [WorkItemListComponent],
+      providers: [WorkItemService],
     })
     .compileComponents();
 
