@@ -5,7 +5,7 @@ import {WorkItem} from "./work-item";
 import {catchError} from "rxjs/operators";
 import {handleError} from "../../shared/utils";
 import {AppSettings} from "../../app.settings";
-import {Page, PageRequest} from "./page";
+import {Page, PageRequest} from "../../shared/pagination";
 
 
 export interface WorkItemQuery {
@@ -39,5 +39,29 @@ export class WorkItemService {
         tap(page => this.log(`fetched work items page ${page}`)),
         catchError(handleError('page')),
       ) as Observable<Page<WorkItem>>;
+  }
+
+    /**
+   * TODO: move into WorkItemService
+   * @param startDt
+   * @param endDt
+   * @param taskId
+   */
+  addWorkItem(startDt: string, endDt: string, taskId: number): Observable<Object> {
+    const body = {
+      start_dt: startDt,
+      end_dt: endDt,
+      task_id: taskId,
+    };
+    return this.http.post(this.workItemsUrl, body);
+  }
+
+  deleteWorkItem(id: number): Observable<Object> {
+    return this.http.delete(
+      `${this.workItemsUrl}/${id}`,
+    ).pipe(
+      tap(() => this.log(`Delete WorkItem ID=${id}`)),
+      catchError(handleError('deleteWorkItem')),
+    );
   }
 }

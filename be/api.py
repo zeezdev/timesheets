@@ -26,6 +26,7 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
+    work_item_delete,
 )
 
 
@@ -249,12 +250,21 @@ def work_items_list(db_session: DbSession, order_by: list[str] = Query(None)):
         service_order_by,
         transformer=lambda items: [{
             'id': item.id,
-            'task_id': item.task_id,
+            'task': {
+                'id': item.task_id,
+                'name': item.task_name,
+            },
             'start_dt': ts_to_dt(item.start_timestamp),
             'end_dt': item.end_timestamp and ts_to_dt(item.end_timestamp),
         } for item in items],
     )
     return page
+
+
+@router.delete('/work/items/{work_item_id}', status_code=204)
+def work_items_remove(work_item_id: int, db_session: DbSession):
+    work_item_delete(db_session, work_item_id)
+
 
 @router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
 def work_start(work_start: schemas.WorkStart, db_session: DbSession):
@@ -264,7 +274,10 @@ def work_start(work_start: schemas.WorkStart, db_session: DbSession):
 
     return schemas.WorkItemOut(
         id=started_work_item.id,
-        task_id=started_work_item.task_id,
+        task=schemas.TaskMinimal(
+            id=started_work_item.task.id,
+            name=started_work_item.task.name,
+        ),
         start_dt=ts_to_dt(started_work_item.start_timestamp),
         end_dt=None,  # end dt of the started work item always is None
     )

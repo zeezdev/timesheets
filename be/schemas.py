@@ -3,6 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+#
+# Category
+#
+
 class CategoryBase(BaseModel):
     name: str
     description: str | None = None
@@ -24,6 +28,10 @@ class CategoryMinimal(BaseModel):
     name: str | None = None
 
 
+#
+# Task
+#
+
 class TaskIn(BaseModel):
     name: str
     category: CategoryMinimal
@@ -43,11 +51,20 @@ class TaskOut(BaseModel):
     is_archived: bool
 
 
+class TaskMinimal(BaseModel):
+    id: int
+    name: str | None = None
+
+
 class TaskWithCategoryMinimal(BaseModel):
     id: int
     name: str
     category: CategoryMinimal
 
+
+#
+# WorkReport
+#
 
 class WorkReportCategory(BaseModel):
     category: CategoryMinimal
@@ -63,20 +80,23 @@ class WorkReportTotal(BaseModel):
     time: float
 
 
-class WorkItemBase(BaseModel):
+#
+# WorkItem
+#
+
+class WorkItem(BaseModel):
     task_id: int
-
-
-class WorkItem(WorkItemBase):
     start_dt: datetime
     end_dt: datetime | None
 
 
-class WorkItemOut(WorkItemBase):
+class WorkItemOut(BaseModel):
     id: int
+    task: TaskMinimal
     start_dt: datetime
     end_dt: datetime | None
 
 
-class WorkStart(WorkItemBase):
+class WorkStart(BaseModel):
+    task_id: int
     start: int | None

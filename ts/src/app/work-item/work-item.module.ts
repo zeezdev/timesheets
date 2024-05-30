@@ -3,7 +3,10 @@ import {WorkItemListComponent} from "./work-item-list/work-item-list.component";
 import {MatTableModule} from "@angular/material/table";
 import {WorkItemService} from "./services/work-item.service";
 import {MatPaginatorModule} from "@angular/material/paginator";
-import {AsyncPipe, NgIf} from "@angular/common";
+import {AsyncPipe, DatePipe, NgIf} from "@angular/common";
+import {RouterLink} from "@angular/router";
+import {MatButtonModule} from "@angular/material/button";
+import {MatIconModule} from "@angular/material/icon";
 
 @NgModule({
   declarations: [
@@ -13,7 +16,11 @@ import {AsyncPipe, NgIf} from "@angular/common";
     MatTableModule,
     MatPaginatorModule,
     AsyncPipe,
-    NgIf
+    NgIf,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    DatePipe
   ],
   providers: [WorkItemService]
 })

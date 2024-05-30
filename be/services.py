@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Sequence, Type, Any
 
+from fastapi import HTTPException
 from sqlalchemy import Row, select, case, literal_column, and_, text, desc
 from sqlalchemy.orm import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -107,7 +108,7 @@ def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[
         WorkItem,
         onclause=and_(Task.id == WorkItem.task_id, WorkItem.end_timestamp.is_(None)),
         isouter=True,  # LEFT OUTER JOIN
-    ).order_by(Task.id)
+    ).order_by(desc(Task.id))
     # Filtration
     if is_archived is not None:
         smth = smth.filter(Task.is_archived == is_archived)
@@ -163,13 +164,22 @@ def work_item_list(db_session: Session, order_by: list[str], transformer: Callab
         model_column = getattr(WorkItem, order_field, None)
         if model_column is None:
             raise ValueError(f'Cannot find model column for `order_by` element: {ob}')
+
         if direction == '-':
-            model_column = desc(order_field)
+            model_column = desc(model_column)
         ordering.append(model_column)
 
     return paginate(
         db_session,
-        select(WorkItem).order_by(*ordering),
+        select(
+            WorkItem.id,
+            WorkItem.task_id,
+            Task.name.label('task_name'),
+            WorkItem.start_timestamp,
+            WorkItem.end_timestamp,
+        ).join(
+            WorkItem.task,
+        ).order_by(*ordering),
         transformer=transformer,
     )
 
@@ -235,9 +245,11 @@ def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, 
 
 
 def work_item_delete(db_session: Session, id_: int) -> None:
-    """DELETE FROM main.work_items WHERE id = ?, id_"""
-    db_session.query(WorkItem).filter(WorkItem.id == id_).delete()
-    db_session.flush()
+    work_item = db_session.get(WorkItem, id_)
+    if work_item is None:
+        raise HTTPException(status_code=404, detail='WorkItem not found')
+    db_session.delete(work_item)
+    db_session.commit()
 
 
 # Reporting

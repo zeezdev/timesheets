@@ -5,7 +5,7 @@ import {WorkItemService} from "../services/work-item.service";
 import {HttpClientTestingModule} from "@angular/common/http/testing";
 import {MatTableModule} from "@angular/material/table";
 
-fdescribe('WorkItemComponent', () => {
+describe('WorkItemComponent', () => {
   let component: WorkItemListComponent;
   let fixture: ComponentFixture<WorkItemListComponent>;
 

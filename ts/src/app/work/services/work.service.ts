@@ -68,15 +68,6 @@ export class WorkService {
       ) as Observable<WorkReportTotal>;
   }
 
-  addWorkItem(startDt: string, endDt: string, taskId: number): void {
-    const body = {
-      start_dt: startDt,
-      end_dt: endDt,
-      task_id: taskId,
-    };
-    this.http.post(`${this.workUrl}/items`, body);
-  }
-
   startWork(taskId: number): Observable<any> {
     console.log(`startWork(${taskId})`);
     const body = {

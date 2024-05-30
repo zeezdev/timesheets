@@ -1,8 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit} from '@angular/core';
 import {WorkItemQuery, WorkItemService} from "../services/work-item.service";
 import {WorkItem} from "../services/work-item";
-import {Sort} from "../services/page";
-import {PaginatedDataSource} from "../services/paginated-datasource";
+import {Sort} from "../../shared/pagination";
+import {PaginatedDataSource} from "../../shared/pagination";
+
+const DEFAULT_PAGE_SIZE: number = 10;
 
 @Component({
   selector: 'app-work-item',
@@ -11,19 +13,22 @@ import {PaginatedDataSource} from "../services/paginated-datasource";
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkItemListComponent implements OnInit {
-  workItems: WorkItem[] = [];
-  displayedColumns: string[] = ['id', 'task_id', 'start_dt', 'end_dt'];
-
+  // workItems: WorkItem[] = [];
+  displayedColumns: string[] = ['id', 'task', 'start_dt', 'end_dt', 'actions'];
   initialSort: Sort<WorkItem> = {property: 'id', order: 'desc'}
+  currentPageIndex: number = 1;
 
   data = new PaginatedDataSource<WorkItem, WorkItemQuery>(
     (request, query) => this.workItemService.page(request, query),
     this.initialSort,
     {search: ''},
-    10,
+    DEFAULT_PAGE_SIZE,
   )
 
-  constructor(private workItemService: WorkItemService) {}
+  constructor(
+    private workItemService: WorkItemService,
+    private changeDetectorRefs: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
     // this.getWorkItems();
@@ -34,5 +39,21 @@ export class WorkItemListComponent implements OnInit {
   //     this.workItems = workItemsPage.items;
   //   });
   // }
-}
 
+  doFetch(pageIndex: number) {
+    this.currentPageIndex = pageIndex;
+    this.data.fetch(this.currentPageIndex);
+  }
+
+  doDeleteWorkItem(element: WorkItem) {
+    if (confirm(`Are you sure to delete the work item with ID=${element.id}`)) {
+      console.log(`Delete work item ID=${element.id}`);
+      this.workItemService.deleteWorkItem(element.id).subscribe(
+        (res) => {
+          this.doFetch(this.currentPageIndex);
+          // this.changeDetectorRefs.detectChanges();
+        },
+      );
+    }
+  }
+}

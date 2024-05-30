@@ -14,6 +14,7 @@ const routes: Routes = [
   {path: 'tasks/:id', component: TaskFormComponent},
   {path: 'work', component: WorkComponent},
   {path: 'work-items', component: WorkItemListComponent},
+  // {path: 'work-items/:id', component: WorkItemFormComponent},
 ];
 
 @NgModule({

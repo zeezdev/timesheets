@@ -1,3 +1,8 @@
 .basic-container {
   padding: 30px;
 }
+
+.button-container {
+  display: flex;
+  gap: 8px; /* Задайте необходимый промежуток между кнопками */
+}

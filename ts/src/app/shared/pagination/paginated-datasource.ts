@@ -2,13 +2,12 @@ import { DataSource } from '@angular/cdk/collections';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
 import { switchMap, startWith, map, share } from 'rxjs/operators';
 import { indicate } from './operators';
-import { Page, Sort, PageRequest, PaginatedEndpoint } from './page';
+import { Page, Sort, PaginatedEndpoint } from './page';
 
 export interface SimpleDataSource<T> extends DataSource<T> {
   connect(): Observable<T[]>;
   disconnect(): void;
 }
-
 
 export class PaginatedDataSource<T, Q> implements SimpleDataSource<T> {
   private pageNumber = new Subject<number>();
