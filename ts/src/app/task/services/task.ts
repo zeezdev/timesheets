@@ -1,7 +1,7 @@
 export interface Task {
   id?: number;
   name: string;
-  category: {
+  category?: {
     id: number;
     name?: string;
   };

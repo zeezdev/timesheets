@@ -2,7 +2,10 @@ import {Observable} from "rxjs";
 
 export interface WorkItem {
   id?: number;
-  task_id: number;
+  task: {
+    id: number;
+    name: string;
+  };
   start_dt: Date;
   end_dt?: Date;
 }

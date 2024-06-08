@@ -1,5 +1,5 @@
 import {Injectable} from "@angular/core";
-import {HttpClient} from "@angular/common/http";
+import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Observable, tap} from "rxjs";
 import {WorkItem} from "./work-item";
 import {catchError} from "rxjs/operators";
@@ -16,6 +16,10 @@ export interface WorkItemQuery {
 @Injectable()
 export class WorkItemService {
   workItemsUrl = `${AppSettings.API_URL}/work/items`;
+  httpOptions = {
+    headers: new HttpHeaders({'Content-Type': 'application/json'})
+  }
+
   constructor(
     private http: HttpClient,
   ) { }
@@ -53,7 +57,7 @@ export class WorkItemService {
       end_dt: endDt,
       task_id: taskId,
     };
-    return this.http.post(this.workItemsUrl, body);
+    return this.http.post(this.workItemsUrl, body, this.httpOptions);
   }
 
   deleteWorkItem(id: number): Observable<Object> {
@@ -63,5 +67,22 @@ export class WorkItemService {
       tap(() => this.log(`Delete WorkItem ID=${id}`)),
       catchError(handleError('deleteWorkItem')),
     );
+  }
+
+  getWorkItem(id: number): Observable<WorkItem> {
+    return this.http.get(
+      `${this.workItemsUrl}/${id}`,
+    ).pipe(
+      tap((res) => this.log(`Fetch WorkItem: ${res}`)),
+      catchError(handleError('getWorkItem')),
+    ) as Observable<WorkItem>;
+  }
+
+  updateWorkItem(workItem: WorkItem): Observable<WorkItem> {
+    return this.http.put<WorkItem>(`${this.workItemsUrl}/${workItem.id}`, workItem, this.httpOptions)
+      .pipe(
+        tap(upWorkItem => {this.log(`updated work item ${upWorkItem}`)}),
+        catchError(handleError('Update work item')),
+      ) as Observable<WorkItem>;
   }
 }

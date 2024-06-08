@@ -29,7 +29,7 @@
         id="category_id"
         name="category_id"
         [(ngModel)]="task && task.category.id"
-        (click)="getCategories($event)"
+        (click)="getCategories()"
       >
         <mat-option class="option-loading" *ngIf="categories === null" disabled>
           <div class="option-loading-container">

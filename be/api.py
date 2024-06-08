@@ -26,7 +26,7 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
-    work_item_delete,
+    work_item_delete, work_item_read, work_item_update,
 )
 
 
@@ -157,6 +157,7 @@ def tasks_save(task_id: int, task: schemas.TaskUpdate, db_session: DbSession):
     )
 
 
+
 @router.get('/work/report_by_category', response_model=list[schemas.WorkReportCategory])
 def get_work_report_by_category(
     db_session: DbSession,
@@ -237,7 +238,7 @@ def work_items_list(db_session: DbSession, order_by: list[str] = Query(None)):
         'end_dt': 'end_timestamp',
     }
     service_order_by = []
-    for ob in order_by:
+    for ob in order_by or []:
         order_by_match = re.match(r'([+-]?)(\w+)', ob)
         if order_by_match is None:
             raise ValueError(f'Incorrect `order_by`: {ob}')
@@ -266,6 +267,41 @@ def work_items_remove(work_item_id: int, db_session: DbSession):
     work_item_delete(db_session, work_item_id)
 
 
+@router.get('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_items_retrieve(work_item_id: int, db_session: DbSession):
+    work_item = work_item_read(db_session, work_item_id)
+    return schemas.WorkItemOut(
+        id=work_item.id,
+        task=schemas.TaskMinimal(
+            id=work_item.task.id,
+            name=work_item.task.name,
+        ),
+        start_dt=ts_to_dt(work_item.start_timestamp),
+        end_dt=ts_to_dt(work_item.end_timestamp),
+    )
+
+
+@router.put('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session: DbSession):
+    """Updates a work item instance"""
+    updated_work_item = work_item_update(
+        db_session,
+        work_item_id,
+        work_item.task.id,
+        start=work_item.start_dt,
+        end=work_item.end_dt,
+    )
+    return schemas.WorkItemOut(
+        id=updated_work_item.id,
+        task=schemas.TaskMinimal(
+            id=updated_work_item.task.id,
+            name=updated_work_item.task.name,
+        ),
+        start_dt=ts_to_dt(updated_work_item.start_timestamp),
+        end_dt=ts_to_dt(updated_work_item.end_timestamp),
+    )
+
+
 @router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
 def work_start(work_start: schemas.WorkStart, db_session: DbSession):
     print(work_start)
@@ -291,7 +327,6 @@ def work_stop_current(db_session: DbSession):
 
 # Initialize API
 app = FastAPI()
-add_pagination(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -299,8 +334,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(router)
+add_pagination(app)
 
 
 if __name__ == '__main__':  # for debug

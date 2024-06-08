@@ -1,0 +1,80 @@
+<div class="mat-app-background basic-container">
+  <h2>Work Item #{{ workItem?.id }}</h2>
+
+  <form class="work-item-form" #workItemForm=ngForm (ngSubmit)="onSubmit(workItemForm)">
+    <mat-form-field class="work-item-full-width" [ngClass]="{'invisible': workItem == null}">
+      <mat-label>ID:</mat-label>
+      <input
+        matInput
+        id="id"
+        name="id"
+        [(ngModel)]="workItem && workItem.id"
+        placeholder="id"
+        [readonly]="true"
+      >
+    </mat-form-field>
+
+    <mat-form-field class="work-item-full-width">
+      <mat-label>Task:</mat-label>
+      <mat-select
+        id="task_id"
+        name="task_id"
+        [(ngModel)]="workItem && workItem.task.id"
+        (click)="getTasks()"
+      >
+        <mat-option class="option-loading" *ngIf="tasks === null" disabled>
+          <div class="option-loading-container">
+            <span>Loading...</span>
+            <mat-spinner class="spinner" diameter="20"></mat-spinner>
+          </div>
+        </mat-option>
+        <mat-option *ngIf="tasks !== null && !tasks.length" disabled>
+          <div class="container">
+            <span>No tasks have been created yet.</span>
+          </div>
+        </mat-option>
+        <mat-option *ngFor="let task of tasks" [value]="task.id">
+          {{task.name}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="work-item-full-width">
+       <mat-label>Start date & time:</mat-label>
+       <input
+         matInput
+         id="start_dt"
+         name="start_dt"
+         [(ngModel)]="workItem && workItem.start_dt"
+         [ngxMatDatetimePicker]="picker_start_dt"
+         placeholder="Start date and time"
+       >
+       <mat-datepicker-toggle matSuffix [for]="picker_start_dt"></mat-datepicker-toggle>
+       <ngx-mat-datetime-picker
+         #picker_start_dt
+         [showSeconds]="true"
+       ></ngx-mat-datetime-picker>
+    </mat-form-field>
+
+    <mat-form-field class="work-item-full-width">
+       <mat-label>End date & time:</mat-label>
+       <input
+         matInput
+         id="end_dt"
+         name="end_dt"
+         [(ngModel)]="workItem && workItem.end_dt"
+         [ngxMatDatetimePicker]="picker_end_dt"
+         placeholder="Enad date and time"
+       >
+       <mat-datepicker-toggle matSuffix [for]="picker_end_dt"></mat-datepicker-toggle>
+       <ngx-mat-datetime-picker
+         #picker_end_dt
+         [showSeconds]="true"
+       ></ngx-mat-datetime-picker>
+    </mat-form-field>
+
+    <mat-card-actions>
+      <button mat-raised-button type="submit" color="primary" id="task-submit">Save</button>
+    </mat-card-actions>
+  </form>
+</div>

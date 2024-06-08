@@ -185,10 +185,11 @@ def work_item_list(db_session: Session, order_by: list[str], transformer: Callab
 
 
 def work_item_read(db_session: Session, id_: int) -> WorkItem | None:
-    """
-    SELECT id, task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?, id_
-    """
     return db_session.query(WorkItem).filter(WorkItem.id == id_).one_or_none()
+    # work_item = db_session.get(WorkItem, id_)
+    # if work_item is None:
+    #     raise HTTPException(status_code=404, detail='WorkItem not found')
+    # return work_item
 
 
 def work_item_start(db_session: Session, task_id: int, start: int | None) -> WorkItem:
@@ -250,6 +251,16 @@ def work_item_delete(db_session: Session, id_: int) -> None:
         raise HTTPException(status_code=404, detail='WorkItem not found')
     db_session.delete(work_item)
     db_session.commit()
+
+
+def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime) -> WorkItem:
+    db_session.query(WorkItem).filter(WorkItem.id == id_).update({
+        'task_id': task_id,
+        'start_timestamp': dt_to_ts(start),
+        'end_timestamp': dt_to_ts(end),
+    })
+    db_session.commit()
+    return work_item_read(db_session, id_)
 
 
 # Reporting
