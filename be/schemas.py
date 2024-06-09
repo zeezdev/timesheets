@@ -97,6 +97,13 @@ class WorkItemOut(BaseModel):
     end_dt: datetime | None
 
 
+class WorkItemPartialUpdate(BaseModel):
+    id: int
+    task: TaskMinimal | None = None
+    start_dt: datetime | None = None
+    end_dt: datetime | None = None
+
+
 class WorkStart(BaseModel):
     task_id: int
     start: int | None

@@ -82,11 +82,33 @@ def test_work_items_update(session):
     response = client.put(f'/api/work/items/{work_item.id}', json=update_data)
 
     assert response.status_code == 200
-    assert response.json() == {
-        'id': work_item.id,
-        **update_data,
-    }
+    assert response.json() == update_data
     session.refresh(work_item)
     assert work_item.start_timestamp == new_start
     assert work_item.end_timestamp == new_end
+    assert work_item.task == new_task
+
+
+def test_work_items_update_partial(session):
+    """Partial update of the work item with a new task only"""
+    work_item = WorkItemFactory()
+    old_start = work_item.start_timestamp
+    old_end = work_item.end_timestamp
+    new_task = TaskFactory()
+    update_data = {
+        'id': work_item.id,
+        'task': {'id': new_task.id, 'name': new_task.name},
+    }
+
+    response = client.patch(f'/api/work/items/{work_item.id}', json=update_data)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        'start_dt': ts_to_dt(old_start).isoformat(),
+        'end_dt': ts_to_dt(old_end).isoformat(),
+        **update_data,
+    }
+    session.refresh(work_item)
+    assert work_item.start_timestamp == old_start
+    assert work_item.end_timestamp == old_end
     assert work_item.task == new_task

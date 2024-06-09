@@ -26,7 +26,7 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
-    work_item_delete, work_item_read, work_item_update,
+    work_item_delete, work_item_read, work_item_update, work_item_update_partial,
 )
 
 
@@ -285,6 +285,27 @@ def work_items_retrieve(work_item_id: int, db_session: DbSession):
 def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session: DbSession):
     """Updates a work item instance"""
     updated_work_item = work_item_update(
+        db_session,
+        work_item_id,
+        work_item.task.id,
+        start=work_item.start_dt,
+        end=work_item.end_dt,
+    )
+    return schemas.WorkItemOut(
+        id=updated_work_item.id,
+        task=schemas.TaskMinimal(
+            id=updated_work_item.task.id,
+            name=updated_work_item.task.name,
+        ),
+        start_dt=ts_to_dt(updated_work_item.start_timestamp),
+        end_dt=ts_to_dt(updated_work_item.end_timestamp),
+    )
+
+
+@router.patch('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_item_save(work_item_id: int, work_item: schemas.WorkItemPartialUpdate, db_session: DbSession):
+    """Updates a work item instance"""
+    updated_work_item = work_item_update_partial(
         db_session,
         work_item_id,
         work_item.task.id,

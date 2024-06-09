@@ -263,6 +263,27 @@ def work_item_update(db_session: Session, id_: int, task_id: int, start: datetim
     return work_item_read(db_session, id_)
 
 
+def work_item_update_partial(
+    db_session: Session,
+    id_: int,
+    task_id: int | None,
+    start: datetime | None,
+    end: datetime | None,
+) -> WorkItem:
+    data = {}
+    if task_id is not None:
+        data['task_id'] = task_id
+    if start is not None:
+        data['start_timestamp'] = dt_to_ts(start)
+    if end is not  None:
+        data['end_timestamp'] = dt_to_ts(end)
+
+    db_session.query(WorkItem).filter(WorkItem.id == id_).update(data)
+    db_session.commit()
+    return work_item_read(db_session, id_)
+
+
+
 # Reporting
 
 def work_get_report_category(db_session: Session, start_dt: datetime, end_dt: datetime) -> Sequence[Row]:
