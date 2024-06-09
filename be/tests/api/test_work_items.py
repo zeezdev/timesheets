@@ -96,7 +96,6 @@ def test_work_items_update_partial(session):
     old_end = work_item.end_timestamp
     new_task = TaskFactory()
     update_data = {
-        'id': work_item.id,
         'task': {'id': new_task.id, 'name': new_task.name},
     }
 
@@ -104,6 +103,7 @@ def test_work_items_update_partial(session):
 
     assert response.status_code == 200
     assert response.json() == {
+        'id': work_item.id,
         'start_dt': ts_to_dt(old_start).isoformat(),
         'end_dt': ts_to_dt(old_end).isoformat(),
         **update_data,
