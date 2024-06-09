@@ -25,7 +25,7 @@ import {NgxMatDatetimePickerModule, NgxMatNativeDateModule} from "@angular-mater
 import {MatDatepickerModule} from "@angular/material/datepicker";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 
-fdescribe('WorkItemFormComponent', () => {
+describe('WorkItemFormComponent', () => {
   let component: WorkItemFormComponent;
   let fixture: ComponentFixture<WorkItemFormComponent>;
   let mockRoute = null;
