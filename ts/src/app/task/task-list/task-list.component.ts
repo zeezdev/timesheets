@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import {Task} from '../services/task';
 import {TaskService} from '../services/task.service';
 import {WorkService} from '../../work/services/work.service';
+import {NotificationService} from "../../shared/notification.service";
 
 @Component({
   selector: 'app-task',
@@ -14,7 +15,11 @@ export class TaskListComponent implements OnInit {
   hasActiveTask: boolean = false;
   showArchived: boolean = false;
 
-  constructor(private taskService: TaskService, private workService: WorkService) { }
+  constructor(
+    private taskService: TaskService,
+    private workService: WorkService,
+    private notifications: NotificationService,
+  ) { }
 
   ngOnInit() {
     this.getTasks();
@@ -37,10 +42,20 @@ export class TaskListComponent implements OnInit {
 
   startWork(id) {
     console.log(`Start work for ${id}`);
-    this.workService.startWork(id).subscribe(() => this.getTasks());
+    this.workService.startWork(id).subscribe({
+      next: () => this.getTasks(),
+      error: err => {
+        this.notifications.error(`Error: (${err.status}) ${err.error}.`)
+      },
+    });
   }
 
   stopWork() {
-    this.workService.stopWorkCurrent().subscribe(() => this.getTasks());
+    this.workService.stopWorkCurrent().subscribe({
+      next: () => this.getTasks(),
+      error: err => {
+        this.notifications.error(`Error: (${err.status}) ${err.error}.`)
+      },
+    });
   }
 }

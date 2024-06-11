@@ -2,10 +2,11 @@ import re
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination, Page
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 
 import schemas
 from database import get_db
@@ -26,15 +27,10 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
-    work_item_delete, work_item_read, work_item_update, work_item_update_partial,
+    work_item_delete, work_item_read, work_item_update, work_item_update_partial, BaseServiceError,
 )
 
-
-# https://fastapi.tiangolo.com/tutorial/cors/
 origins = [
-    # "http://localhost.tiangolo.com",
-    # "https://localhost.tiangolo.com",
-    # "http://localhost",
     "http://localhost:4200",
 ]
 
@@ -155,7 +151,6 @@ def tasks_save(task_id: int, task: schemas.TaskUpdate, db_session: DbSession):
         is_current=updated_task.is_current,
         is_archived=updated_task.is_archived,
     )
-
 
 
 @router.get('/work/report_by_category', response_model=list[schemas.WorkReportCategory])
@@ -325,8 +320,6 @@ def work_item_save(work_item_id: int, work_item: schemas.WorkItemPartialUpdate, 
 
 @router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
 def work_start(work_start: schemas.WorkStart, db_session: DbSession):
-    print(work_start)
-    # TODO: handle 'Cannot start work: already started'
     started_work_item = work_item_start(db_session, work_start.task_id, start=work_start.start)
 
     return schemas.WorkItemOut(
@@ -357,6 +350,14 @@ app.add_middleware(
 )
 app.include_router(router)
 add_pagination(app)
+
+
+@app.exception_handler(BaseServiceError)
+async def service_error_handler(request: Request, exc: BaseServiceError):
+    return JSONResponse(
+        status_code=400,
+        content=str(exc),
+    )
 
 
 if __name__ == '__main__':  # for debug

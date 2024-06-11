@@ -16,6 +16,14 @@ from models import Task, Category, WorkItem
 logger = logging.getLogger(__name__)
 
 
+class BaseServiceError(Exception):
+    pass
+
+
+class WorkItemStartAlreadyStartedError(BaseServiceError):
+    pass
+
+
 # CATEGORY
 
 def category_create(db_session: Session, name: str, description: str | None) -> Category:
@@ -202,7 +210,7 @@ def work_item_start(db_session: Session, task_id: int, start: int | None) -> Wor
 
     # Validate active work
     if started_work_item is not None:
-        raise Exception('Cannot start work: already started')
+        raise WorkItemStartAlreadyStartedError('Cannot start work: already started')
 
     start = start or get_now_timestamp()
     obj = WorkItem(task_id=task_id, start_timestamp=start)
