@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Sequence, Type, Any
 
 from fastapi import HTTPException
-from sqlalchemy import Row, select, case, literal_column, and_, text, desc
+from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_
 from sqlalchemy.orm import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
 
@@ -261,11 +261,26 @@ def work_item_delete(db_session: Session, id_: int) -> None:
     db_session.commit()
 
 
+def _work_item_dt_range_validation(db_session: Session, start_ts: int, end_ts: int) -> None:
+    result = db_session.query(WorkItem).filter(
+        or_(
+            and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
+            and_(WorkItem.start_timestamp >= end_ts, WorkItem.end_timestamp <= end_ts),
+        )
+    ).one_or_none()
+    if result is not None:
+        raise HTTPException(status_code=400)
+
+
 def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime) -> WorkItem:
+    start_ts = dt_to_ts(start)
+    end_ts = dt_to_ts(end)
+    _work_item_dt_range_validation(db_session, start_ts, end_ts)
+
     db_session.query(WorkItem).filter(WorkItem.id == id_).update({
         'task_id': task_id,
-        'start_timestamp': dt_to_ts(start),
-        'end_timestamp': dt_to_ts(end),
+        'start_timestamp': start_ts,
+        'end_timestamp': end_ts,
     })
     db_session.commit()
     return work_item_read(db_session, id_)
@@ -285,6 +300,8 @@ def work_item_update_partial(
         data['start_timestamp'] = dt_to_ts(start)
     if end is not  None:
         data['end_timestamp'] = dt_to_ts(end)
+
+    # TODO: _work_item_dt_range_validation
 
     db_session.query(WorkItem).filter(WorkItem.id == id_).update(data)
     db_session.commit()

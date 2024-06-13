@@ -298,7 +298,7 @@ def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session
 
 
 @router.patch('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
-def work_item_save(work_item_id: int, work_item: schemas.WorkItemPartialUpdate, db_session: DbSession):
+def work_item_save_partial(work_item_id: int, work_item: schemas.WorkItemPartialUpdate, db_session: DbSession):
     """Updates a work item instance"""
     updated_work_item = work_item_update_partial(
         db_session,
