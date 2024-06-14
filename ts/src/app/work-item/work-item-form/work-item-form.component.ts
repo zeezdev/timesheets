@@ -74,17 +74,7 @@ export class WorkItemFormComponent {
         }
       );
     } else {
-      // const category = this.categories.find(c => {
-      //   return c.id === form.value.category_id;
-      // });
-      // this.service.createTask({
-      //   name: form.value.name,
-      //   category: category,
-      // }).subscribe(createdTask => {
-      //   console.info('Task created');
-      //   this.router.navigate(['/tasks', createdTask.id])
-      //   this.notifications.success('Created');
-      // });
+      // TODO: implement WorkItem creation
     }
   }
 

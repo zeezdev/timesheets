@@ -12,7 +12,7 @@ const DEFAULT_PAGE_SIZE: number = 10;
   styleUrls: ['./work-item-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class WorkItemListComponent implements OnInit {
+export class WorkItemListComponent {
   // workItems: WorkItem[] = [];
   displayedColumns: string[] = ['id', 'task', 'start_dt', 'end_dt', 'actions'];
   initialSort: Sort<WorkItem> = {property: 'id', order: 'desc'}
@@ -29,16 +29,6 @@ export class WorkItemListComponent implements OnInit {
     private workItemService: WorkItemService,
     private changeDetectorRefs: ChangeDetectorRef,
   ) {}
-
-  ngOnInit() {
-    // this.getWorkItems();
-  }
-
-  // getWorkItems() {
-  //   this.workItemService.getWorkItems().subscribe(workItemsPage => {
-  //     this.workItems = workItemsPage.items;
-  //   });
-  // }
 
   doFetch(pageIndex: number) {
     this.currentPageIndex = pageIndex;

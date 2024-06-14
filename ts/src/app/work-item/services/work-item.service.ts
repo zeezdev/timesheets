@@ -24,14 +24,6 @@ export class WorkItemService {
     private http: HttpClient,
   ) { }
 
-  // getWorkItems(): Observable<PaginatedResponse<WorkItem>> {
-  //   return this.http.get<PaginatedResponse<WorkItem>>(`${this.workItemsUrl}?order_by=-start_dt`)
-  //     .pipe(
-  //       tap(workItems => this.log(`fetched work items ${workItems}`)),
-  //       catchError(handleError('getWorkItems'))
-  //     ) as Observable<PaginatedResponse<WorkItem>>;
-  // }
-
   private log(message: string) {
     console.log(`WorkItemService: ${message}`);
   }
@@ -45,12 +37,6 @@ export class WorkItemService {
       ) as Observable<Page<WorkItem>>;
   }
 
-    /**
-   * TODO: move into WorkItemService
-   * @param startDt
-   * @param endDt
-   * @param taskId
-   */
   addWorkItem(startDt: string, endDt: string, taskId: number): Observable<Object> {
     const body = {
       start_dt: startDt,
