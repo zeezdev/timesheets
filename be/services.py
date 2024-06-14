@@ -24,6 +24,11 @@ class WorkItemStartAlreadyStartedError(BaseServiceError):
     pass
 
 
+class WorkItemDtRangeValidationError(BaseServiceError):
+    def __init__(self):
+        super().__init__('The work item with this date and time range already exists.')
+
+
 # CATEGORY
 
 def category_create(db_session: Session, name: str, description: str | None) -> Category:
@@ -261,22 +266,22 @@ def work_item_delete(db_session: Session, id_: int) -> None:
     db_session.commit()
 
 
-def _work_item_dt_range_validation(db_session: Session, start_ts: int, end_ts: int) -> None:
+def _work_item_dt_range_validation(db_session: Session, object_id: int, start_ts: int, end_ts: int) -> None:
     result = db_session.query(WorkItem).filter(
         or_(
             and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
-            and_(WorkItem.start_timestamp >= end_ts, WorkItem.end_timestamp <= end_ts),
-        )
+            and_(WorkItem.start_timestamp <= end_ts, WorkItem.end_timestamp >= end_ts),
+        ),
+        WorkItem.id != object_id,
     ).one_or_none()
     if result is not None:
-        raise HTTPException(status_code=400)
+        raise WorkItemDtRangeValidationError
 
 
 def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime) -> WorkItem:
     start_ts = dt_to_ts(start)
     end_ts = dt_to_ts(end)
-    _work_item_dt_range_validation(db_session, start_ts, end_ts)
-
+    _work_item_dt_range_validation(db_session, id_, start_ts, end_ts)
     db_session.query(WorkItem).filter(WorkItem.id == id_).update({
         'task_id': task_id,
         'start_timestamp': start_ts,

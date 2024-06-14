@@ -134,7 +134,7 @@ def test_work_item_update_start_dt_error(session, start_delta):
     response = client.put(f'/api/work/items/{work_item2.id}', json=update_data)
 
     assert response.status_code == 400
-    assert response.json()['detail'] == 'Bad Request'
+    assert response.json() == 'The work item with this date and time range already exists.'
     session.refresh(work_item2)
     assert work_item2.start_timestamp == old_start
 
@@ -158,6 +158,6 @@ def test_work_item_update_end_dt_error(session, end_delta):
     response = client.put(f'/api/work/items/{work_item1.id}', json=update_data)
 
     assert response.status_code == 400
-    assert response.json()['detail'] == 'Bad Request'
+    assert response.json() == 'The work item with this date and time range already exists.'
     session.refresh(work_item1)
     assert work_item1.end_timestamp == old_end
