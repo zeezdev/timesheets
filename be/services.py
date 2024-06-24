@@ -25,8 +25,8 @@ class WorkItemStartAlreadyStartedError(BaseServiceError):
 
 
 class WorkItemDtRangeValidationError(BaseServiceError):
-    def __init__(self):
-        super().__init__('The work item with this date and time range already exists.')
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 # CATEGORY
@@ -241,12 +241,36 @@ def work_item_stop_current(db_session: Session) -> None:
     logger.info('Work stopped')
 
 
+def _work_item_dt_range_validation(db_session: Session, object_id: int | None, start_ts: int, end_ts: int) -> None:
+    # 1. Validate
+    if start_ts >= end_ts:
+        raise WorkItemDtRangeValidationError(
+            'The start date and time of the work element must be before its end.'
+        )
+
+    # 2. Validate existing work items
+    filters = [
+        or_(
+            # finished work items
+            and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
+            and_(WorkItem.start_timestamp <= end_ts, WorkItem.end_timestamp >= end_ts),
+            # current work item
+            and_(WorkItem.end_timestamp == None, WorkItem.start_timestamp <= end_ts),
+        ),
+    ]
+    if object_id is not None:  # on create
+        filters.append(WorkItem.id != object_id)
+
+    result = db_session.query(WorkItem).filter(*filters).one_or_none()
+    if result is not None:
+        raise WorkItemDtRangeValidationError('The work item with this date and time range already exists.')
+
+
 def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, task_id: int) -> WorkItem:
-    """
-    INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?,?,?), task_id, start_ts, end_ts
-    """
     start_ts = dt_to_ts(start_dt)
     end_ts = dt_to_ts(end_dt)
+    _work_item_dt_range_validation(db_session, None, start_ts, end_ts)
+
     obj = WorkItem(
         task_id=task_id,
         start_timestamp=start_ts,
@@ -266,22 +290,11 @@ def work_item_delete(db_session: Session, id_: int) -> None:
     db_session.commit()
 
 
-def _work_item_dt_range_validation(db_session: Session, object_id: int, start_ts: int, end_ts: int) -> None:
-    result = db_session.query(WorkItem).filter(
-        or_(
-            and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
-            and_(WorkItem.start_timestamp <= end_ts, WorkItem.end_timestamp >= end_ts),
-        ),
-        WorkItem.id != object_id,
-    ).one_or_none()
-    if result is not None:
-        raise WorkItemDtRangeValidationError
-
-
 def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime) -> WorkItem:
     start_ts = dt_to_ts(start)
     end_ts = dt_to_ts(end)
     _work_item_dt_range_validation(db_session, id_, start_ts, end_ts)
+
     db_session.query(WorkItem).filter(WorkItem.id == id_).update({
         'task_id': task_id,
         'start_timestamp': start_ts,
@@ -298,20 +311,25 @@ def work_item_update_partial(
     start: datetime | None,
     end: datetime | None,
 ) -> WorkItem:
-    data = {}
+    work_item = work_item_read(db_session, id_)
+
     if task_id is not None:
-        data['task_id'] = task_id
+        work_item.task_id = task_id
     if start is not None:
-        data['start_timestamp'] = dt_to_ts(start)
+        work_item.start_timestamp = dt_to_ts(start)
     if end is not  None:
-        data['end_timestamp'] = dt_to_ts(end)
+        work_item.end_timestamp = dt_to_ts(end)
 
-    # TODO: _work_item_dt_range_validation
+    _work_item_dt_range_validation(
+        db_session,
+        id_,
+        work_item.start_timestamp,
+        work_item.end_timestamp,
+    )
 
-    db_session.query(WorkItem).filter(WorkItem.id == id_).update(data)
     db_session.commit()
-    return work_item_read(db_session, id_)
 
+    return work_item
 
 
 # Reporting

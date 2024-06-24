@@ -74,7 +74,21 @@ export class WorkItemFormComponent {
         }
       );
     } else {
-      // TODO: implement WorkItem creation
+      const task = this.tasks.find((t: Task) => t.id === form.value.task_id);
+      this.workItemService.addWorkItem(
+        form.value.start_dt,
+        form.value.end_dt,
+        form.value.task_id
+      ).subscribe({
+        next: (createdWorkItem: WorkItem) => {
+          console.info('Work item created');
+          this.router.navigate(['/work-items', createdWorkItem.id]);
+          this.notifications.success('Created');
+        },
+        error: (err) => {
+          this.notifications.error(err);
+        },
+      });
     }
   }
 

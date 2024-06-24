@@ -218,12 +218,23 @@ def get_work_report_total(
     )
 
 
-@router.post('/work/items/', response_model=schemas.WorkItem, status_code=201)
+@router.post('/work/items/', response_model=schemas.WorkItemOut, status_code=201)
 def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
-    work_item_create(db_session, work_item.start_dt, work_item.end_dt, work_item.task_id)
-    # FIXME: return the object after creation
-    # TODO: add validation: conflict with existing work items
-    return work_item
+    created_work_item = work_item_create(
+        db_session,
+        work_item.start_dt,
+        work_item.end_dt,
+        work_item.task_id,
+    )
+    return schemas.WorkItemOut(
+        id=created_work_item.id,
+        start_dt=ts_to_dt(created_work_item.start_timestamp),
+        end_dt=ts_to_dt(created_work_item.end_timestamp),
+        task=schemas.TaskMinimal(
+            id=created_work_item.task.id,
+            name=created_work_item.task.name,
+        ),
+    )
 
 
 @router.get('/work/items/', response_model=Page[schemas.WorkItemOut], summary='Get all work items')

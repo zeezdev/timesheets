@@ -14,3 +14,11 @@ mat-form-field {
 .work-item-full-width {
   width: 100%;
 }
+
+/* Hide mat-form-field */
+.invisible{
+    display: block;
+    visibility: hidden;
+    height: 0;
+    width: 0;
+}

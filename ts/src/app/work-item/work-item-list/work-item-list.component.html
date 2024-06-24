@@ -1,5 +1,12 @@
 <div class="mat-app-background basic-container">
   <h2>Work Items</h2>
+
+  <div class="work-item-list-actions">
+    <div class="work-item-add">
+      <a routerLink="/work-items/add" routerLinkActive="active" ariaCurrentWhenActive="page">Create Work Item</a>
+    </div>
+  </div>
+
   <table mat-table [dataSource]="data" class="mat-elevation-z8">
     <!-- Id Column -->
     <ng-container matColumnDef="id">

@@ -161,3 +161,43 @@ def test_work_item_update_end_dt_error(session, end_delta):
     assert response.json() == 'The work item with this date and time range already exists.'
     session.refresh(work_item1)
     assert work_item1.end_timestamp == old_end
+
+
+def test_work_item_update_conflict_with_current_error(session):
+    now = get_now_timestamp()
+    work_item = WorkItemFactory(start_timestamp=now+101, end_timestamp=now+200)
+    WorkItemFactory(start_timestamp=now+201, end_timestamp=None)  # current WorkItem
+    old_end = work_item.end_timestamp
+    update_data = {
+        'id': work_item.id,
+        'task': {'id': work_item.task.id, 'name': work_item.task.name},
+        'start_dt': ts_to_dt(work_item.start_timestamp).isoformat(),
+        'end_dt': ts_to_dt(now+202).isoformat(),  # conflict with the current WI range
+    }
+
+    response = client.put(f'/api/work/items/{work_item.id}', json=update_data)
+
+    assert response.status_code == 400
+    assert response.json() == 'The work item with this date and time range already exists.'
+    session.refresh(work_item)
+    assert work_item.end_timestamp == old_end
+
+
+@pytest.mark.parametrize('delta', [0, 1])
+def test_work_item_update_start_equal_or_more_end_error(session, delta):
+    now = get_now_timestamp()
+    work_item = WorkItemFactory(start_timestamp=now, end_timestamp=now+100)
+    old_start_timestamp = work_item.start_timestamp
+    update_data = {
+        'id': work_item.id,
+        'task': {'id': work_item.task.id, 'name': work_item.task.name},
+        'start_dt': ts_to_dt(work_item.end_timestamp+delta).isoformat(),  # update start with the delta
+        'end_dt': ts_to_dt(work_item.end_timestamp).isoformat(),
+    }
+
+    response = client.put(f'/api/work/items/{work_item.id}', json=update_data)
+
+    assert response.status_code == 400
+    assert response.json() == 'The start date and time of the work element must be before its end.'
+    session.refresh(work_item)
+    assert work_item.start_timestamp == old_start_timestamp

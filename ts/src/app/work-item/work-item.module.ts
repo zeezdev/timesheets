@@ -4,7 +4,7 @@ import {MatTableModule} from "@angular/material/table";
 import {WorkItemService} from "./services/work-item.service";
 import {MatPaginatorModule} from "@angular/material/paginator";
 import {AsyncPipe, DatePipe, NgClass, NgForOf, NgIf} from "@angular/common";
-import {RouterLink} from "@angular/router";
+import {RouterLink, RouterLinkActive} from "@angular/router";
 import {MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import { WorkItemFormComponent } from './work-item-form/work-item-form.component';
@@ -24,30 +24,31 @@ import {MatDatepickerModule} from "@angular/material/datepicker";
     WorkItemListComponent,
     WorkItemFormComponent,
   ],
-  imports: [
-    MatTableModule,
-    MatPaginatorModule,
-    AsyncPipe,
-    NgIf,
-    RouterLink,
-    MatButtonModule,
-    MatIconModule,
-    DatePipe,
-    FormsModule,
-    MatCardModule,
-    MatCheckboxModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatOptionModule,
-    MatProgressSpinnerModule,
-    MatSelectModule,
-    NgForOf,
-    ReactiveFormsModule,
-    NgClass,
-    NgxMatDatetimePickerModule,
-    MatDatepickerModule,
-    NgxMatNativeDateModule,
-  ],
+    imports: [
+        MatTableModule,
+        MatPaginatorModule,
+        AsyncPipe,
+        NgIf,
+        RouterLink,
+        MatButtonModule,
+        MatIconModule,
+        DatePipe,
+        FormsModule,
+        MatCardModule,
+        MatCheckboxModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatOptionModule,
+        MatProgressSpinnerModule,
+        MatSelectModule,
+        NgForOf,
+        ReactiveFormsModule,
+        NgClass,
+        NgxMatDatetimePickerModule,
+        MatDatepickerModule,
+        NgxMatNativeDateModule,
+        RouterLinkActive,
+    ],
   providers: [WorkItemService]
 })
 export class WorkItemModule {}

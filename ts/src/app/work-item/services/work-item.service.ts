@@ -37,13 +37,18 @@ export class WorkItemService {
       ) as Observable<Page<WorkItem>>;
   }
 
-  addWorkItem(startDt: string, endDt: string, taskId: number): Observable<Object> {
+  addWorkItem(startDt: string, endDt: string, taskId: number): Observable<WorkItem> {
     const body = {
       start_dt: startDt,
       end_dt: endDt,
       task_id: taskId,
     };
-    return this.http.post(this.workItemsUrl, body, this.httpOptions);
+    return this.http.post(
+      this.workItemsUrl, body, this.httpOptions,
+    ).pipe(
+      tap(newWorkItem => {this.log(`created work item ${newWorkItem}`)}),
+      catchError(handleError('Add work item')),
+    ) as Observable<WorkItem>;
   }
 
   deleteWorkItem(id: number): Observable<Object> {
