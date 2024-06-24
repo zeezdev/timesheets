@@ -67,12 +67,15 @@ export class WorkItemFormComponent {
 
   onSubmit(form) {
     if (this.workItem !== null) {
-      this.workItemService.updateWorkItem(this.workItem).subscribe(
-        () => {
+      this.workItemService.updateWorkItem(this.workItem).subscribe({
+        next: () => {
           console.info('Work items updated.');
           this.notifications.success('Updated');
+        },
+        error: (err) => {
+          this.notifications.error(err);
         }
-      );
+      });
     } else {
       const task = this.tasks.find((t: Task) => t.id === form.value.task_id);
       this.workItemService.addWorkItem(

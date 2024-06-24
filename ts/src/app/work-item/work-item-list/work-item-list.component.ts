@@ -13,7 +13,6 @@ const DEFAULT_PAGE_SIZE: number = 10;
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkItemListComponent {
-  // workItems: WorkItem[] = [];
   displayedColumns: string[] = ['id', 'task', 'start_dt', 'end_dt', 'actions'];
   initialSort: Sort<WorkItem> = {property: 'id', order: 'desc'}
   currentPageIndex: number = 1;
@@ -27,7 +26,6 @@ export class WorkItemListComponent {
 
   constructor(
     private workItemService: WorkItemService,
-    private changeDetectorRefs: ChangeDetectorRef,
   ) {}
 
   doFetch(pageIndex: number) {
@@ -41,7 +39,6 @@ export class WorkItemListComponent {
       this.workItemService.deleteWorkItem(element.id).subscribe(
         (res) => {
           this.doFetch(this.currentPageIndex);
-          // this.changeDetectorRefs.detectChanges();
         },
       );
     }

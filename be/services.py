@@ -241,9 +241,14 @@ def work_item_stop_current(db_session: Session) -> None:
     logger.info('Work stopped')
 
 
-def _work_item_dt_range_validation(db_session: Session, object_id: int | None, start_ts: int, end_ts: int) -> None:
+def _work_item_dt_range_validation(
+    db_session: Session,
+    object_id: int | None,
+    start_ts: int,
+    end_ts: int,
+) -> None:
     # 1. Validate
-    if start_ts >= end_ts:
+    if start_ts >= end_ts:  # TODO: support case when end_ts is None
         raise WorkItemDtRangeValidationError(
             'The start date and time of the work element must be before its end.'
         )
@@ -290,7 +295,7 @@ def work_item_delete(db_session: Session, id_: int) -> None:
     db_session.commit()
 
 
-def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime) -> WorkItem:
+def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime | None) -> WorkItem:
     start_ts = dt_to_ts(start)
     end_ts = dt_to_ts(end)
     _work_item_dt_range_validation(db_session, id_, start_ts, end_ts)

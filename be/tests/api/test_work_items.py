@@ -44,9 +44,13 @@ def test_work_items_list(session):
     }
 
 
-def test_work_items_get(session):
-    work_item = WorkItemFactory()
+@pytest.mark.parametrize('instance_kwargs', [
+    {},
+    {'end_timestamp': None},  # the current WI
+])
+def test_work_items_get(session, instance_kwargs):
     WorkItemFactory()
+    work_item = WorkItemFactory(**instance_kwargs)
 
     response = client.get(f'/api/work/items/{work_item.id}')
 
@@ -55,7 +59,7 @@ def test_work_items_get(session):
         'id': work_item.id,
         'task': {'id': work_item.task.id, 'name': work_item.task.name},
         'start_dt': ts_to_dt(work_item.start_timestamp).isoformat(),
-        'end_dt': ts_to_dt(work_item.end_timestamp).isoformat(),
+        'end_dt': None if work_item.end_timestamp is None else ts_to_dt(work_item.end_timestamp).isoformat(),
     }
 
 

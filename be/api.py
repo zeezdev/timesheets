@@ -283,7 +283,7 @@ def work_items_retrieve(work_item_id: int, db_session: DbSession):
             name=work_item.task.name,
         ),
         start_dt=ts_to_dt(work_item.start_timestamp),
-        end_dt=ts_to_dt(work_item.end_timestamp),
+        end_dt=None if work_item.end_timestamp is None else ts_to_dt(work_item.end_timestamp),
     )
 
 
