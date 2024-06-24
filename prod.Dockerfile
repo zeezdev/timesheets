@@ -8,7 +8,7 @@ RUN npm install
 
 COPY ts .
 
-RUN npm run build --prod
+RUN npm run build
 
 FROM unit:1.32.0-python3.11
 
