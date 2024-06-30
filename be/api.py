@@ -1,9 +1,12 @@
+import re
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination, Page
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 
 import schemas
 from database import get_db
@@ -23,14 +26,11 @@ from services import (
     work_get_report_category,
     work_get_report_task,
     work_get_report_total,
+    work_item_list,
+    work_item_delete, work_item_read, work_item_update, work_item_update_partial, BaseServiceError,
 )
 
-
-# https://fastapi.tiangolo.com/tutorial/cors/
 origins = [
-    # "http://localhost.tiangolo.com",
-    # "https://localhost.tiangolo.com",
-    # "http://localhost",
     "http://localhost:4200",
 ]
 
@@ -218,23 +218,127 @@ def get_work_report_total(
     )
 
 
-@router.post('/work/items/', response_model=schemas.WorkItem, status_code=201)
-def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
-    work_item_create(db_session, work_item.start_dt, work_item.end_dt, work_item.task_id)
-    # FIXME: return the object after creation
-    # TODO: add validation: conflict with existing work items
-    return work_item
+@router.post('/work/items/', response_model=schemas.WorkItemOut, status_code=201)
+def work_items_add(work_item: schemas.WorkItemIn, db_session: DbSession):
+    created_work_item = work_item_create(
+        db_session,
+        work_item.start_dt,
+        work_item.end_dt,
+        work_item.task_id,
+    )
+    return schemas.WorkItemOut(
+        id=created_work_item.id,
+        start_dt=ts_to_dt(created_work_item.start_timestamp),
+        end_dt=created_work_item.end_timestamp and ts_to_dt(created_work_item.end_timestamp),
+        task=schemas.TaskMinimal(
+            id=created_work_item.task.id,
+            name=created_work_item.task.name,
+        ),
+    )
+
+
+@router.get('/work/items/', response_model=Page[schemas.WorkItemOut], summary='Get all work items')
+def work_items_list(db_session: DbSession, order_by: list[str] = Query(None)):
+    order_by_map = {
+        'start_dt': 'start_timestamp',
+        'end_dt': 'end_timestamp',
+    }
+    service_order_by = []
+    for ob in order_by or []:
+        order_by_match = re.match(r'([+-]?)(\w+)', ob)
+        if order_by_match is None:
+            raise ValueError(f'Incorrect `order_by`: {ob}')
+        direction, order_field = order_by_match.groups()
+        service_field = f'{direction}{order_by_map.get(order_field, order_field)}'
+        service_order_by.append(service_field)
+
+    page = work_item_list(
+        db_session,
+        service_order_by,
+        transformer=lambda items: [{
+            'id': item.id,
+            'task': {
+                'id': item.task_id,
+                'name': item.task_name,
+            },
+            'start_dt': ts_to_dt(item.start_timestamp),
+            'end_dt': item.end_timestamp and ts_to_dt(item.end_timestamp),
+        } for item in items],
+    )
+    return page
+
+
+@router.delete('/work/items/{work_item_id}', status_code=204)
+def work_items_remove(work_item_id: int, db_session: DbSession):
+    work_item_delete(db_session, work_item_id)
+
+
+@router.get('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_items_retrieve(work_item_id: int, db_session: DbSession):
+    work_item = work_item_read(db_session, work_item_id)
+    return schemas.WorkItemOut(
+        id=work_item.id,
+        task=schemas.TaskMinimal(
+            id=work_item.task.id,
+            name=work_item.task.name,
+        ),
+        start_dt=ts_to_dt(work_item.start_timestamp),
+        end_dt=work_item.end_timestamp and ts_to_dt(work_item.end_timestamp),
+    )
+
+
+@router.put('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session: DbSession):
+    """Updates a work item instance"""
+    updated_work_item = work_item_update(
+        db_session,
+        work_item_id,
+        work_item.task.id,
+        start=work_item.start_dt,
+        end=work_item.end_dt,
+    )
+    return schemas.WorkItemOut(
+        id=updated_work_item.id,
+        task=schemas.TaskMinimal(
+            id=updated_work_item.task.id,
+            name=updated_work_item.task.name,
+        ),
+        start_dt=ts_to_dt(updated_work_item.start_timestamp),
+        end_dt=updated_work_item.end_timestamp and ts_to_dt(updated_work_item.end_timestamp),
+    )
+
+
+@router.patch('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
+def work_item_save_partial(work_item_id: int, work_item: schemas.WorkItemPartialUpdate, db_session: DbSession):
+    """Updates a work item instance"""
+    updated_work_item = work_item_update_partial(
+        db_session,
+        work_item_id,
+        work_item.task.id,
+        start=work_item.start_dt,
+        end=work_item.end_dt,
+    )
+    return schemas.WorkItemOut(
+        id=updated_work_item.id,
+        task=schemas.TaskMinimal(
+            id=updated_work_item.task.id,
+            name=updated_work_item.task.name,
+        ),
+        start_dt=ts_to_dt(updated_work_item.start_timestamp),
+        end_dt=updated_work_item.end_timestamp and ts_to_dt(updated_work_item.end_timestamp),
+    )
 
 
 @router.post('/work/start', response_model=schemas.WorkItemOut, status_code=201)
 def work_start(work_start: schemas.WorkStart, db_session: DbSession):
-    print(work_start)
-    # TODO: handle 'Cannot start work: already started'
     started_work_item = work_item_start(db_session, work_start.task_id, start=work_start.start)
 
     return schemas.WorkItemOut(
         id=started_work_item.id,
-        task_id=started_work_item.task_id,
+        task=schemas.TaskMinimal(
+            id=started_work_item.task.id,
+            name=started_work_item.task.name,
+        ),
         start_dt=ts_to_dt(started_work_item.start_timestamp),
         end_dt=None,  # end dt of the started work item always is None
     )
@@ -255,8 +359,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(router)
+add_pagination(app)
+
+
+@app.exception_handler(BaseServiceError)
+async def service_error_handler(request: Request, exc: BaseServiceError):
+    return JSONResponse(
+        status_code=400,
+        content=str(exc),
+    )
 
 
 if __name__ == '__main__':  # for debug

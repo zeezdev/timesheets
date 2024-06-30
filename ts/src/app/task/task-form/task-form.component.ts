@@ -43,11 +43,15 @@ export class TaskFormComponent implements OnInit {
     );
   }
 
-  getCategories(event) {
-    this.categories = null;
-    this.categoryService.getCategories().subscribe(
-      categories => { this.categories = categories }
-    );
+  getCategories() {
+    this.categoryService.getCategories().subscribe({
+      next: (categories) => {
+        this.categories = categories
+      },
+      error: () => {
+        this.categories = null;
+      },
+    });
   }
 
   onSubmit(form) {

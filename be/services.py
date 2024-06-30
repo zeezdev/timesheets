@@ -1,15 +1,32 @@
 import logging
+import re
+from collections.abc import Callable
 from datetime import datetime
-from typing import Sequence, Type
+from typing import Sequence, Type, Any
 
-from sqlalchemy import Row, select, case, literal_column, and_, text
+from fastapi import HTTPException
+from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_
 from sqlalchemy.orm import Session
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 from dt import dt_to_ts, get_now_timestamp
 
 from models import Task, Category, WorkItem
 
 logger = logging.getLogger(__name__)
+
+
+class BaseServiceError(Exception):
+    pass
+
+
+class WorkItemStartAlreadyStartedError(BaseServiceError):
+    pass
+
+
+class WorkItemDtRangeValidationError(BaseServiceError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 # CATEGORY
@@ -104,7 +121,7 @@ def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[
         WorkItem,
         onclause=and_(Task.id == WorkItem.task_id, WorkItem.end_timestamp.is_(None)),
         isouter=True,  # LEFT OUTER JOIN
-    ).order_by(Task.id)
+    ).order_by(desc(Task.id))
     # Filtration
     if is_archived is not None:
         smth = smth.filter(Task.is_archived == is_archived)
@@ -149,15 +166,43 @@ def task_read(db_session: Session, id_: int) -> Row[tuple] | None:
 
 # WORK
 
-def work_item_list(db_session: Session) -> list[Type[WorkItem]]:
-    return db_session.query(WorkItem).order_by(WorkItem.start_timestamp).all()
+def work_item_list(db_session: Session, order_by: list[str], transformer: Callable) -> Any:
+    # order_by expression processing
+    ordering = []
+    for ob in order_by:
+        order_by_match = re.match(r'([+-]?)(\w+)', ob)
+        if order_by_match is None:
+            raise ValueError(f'Incorrect `order_by` element: {ob}')
+        direction, order_field = order_by_match.groups()
+        model_column = getattr(WorkItem, order_field, None)
+        if model_column is None:
+            raise ValueError(f'Cannot find model column for `order_by` element: {ob}')
+
+        if direction == '-':
+            model_column = desc(model_column)
+        ordering.append(model_column)
+
+    return paginate(
+        db_session,
+        select(
+            WorkItem.id,
+            WorkItem.task_id,
+            Task.name.label('task_name'),
+            WorkItem.start_timestamp,
+            WorkItem.end_timestamp,
+        ).join(
+            WorkItem.task,
+        ).order_by(*ordering),
+        transformer=transformer,
+    )
 
 
 def work_item_read(db_session: Session, id_: int) -> WorkItem | None:
-    """
-    SELECT id, task_id, start_timestamp, end_timestamp FROM main.work_items WHERE id=?, id_
-    """
     return db_session.query(WorkItem).filter(WorkItem.id == id_).one_or_none()
+    # work_item = db_session.get(WorkItem, id_)
+    # if work_item is None:
+    #     raise HTTPException(status_code=404, detail='WorkItem not found')
+    # return work_item
 
 
 def work_item_start(db_session: Session, task_id: int, start: int | None) -> WorkItem:
@@ -170,7 +215,7 @@ def work_item_start(db_session: Session, task_id: int, start: int | None) -> Wor
 
     # Validate active work
     if started_work_item is not None:
-        raise Exception('Cannot start work: already started')
+        raise WorkItemStartAlreadyStartedError('Cannot start work: already started')
 
     start = start or get_now_timestamp()
     obj = WorkItem(task_id=task_id, start_timestamp=start)
@@ -196,12 +241,49 @@ def work_item_stop_current(db_session: Session) -> None:
     logger.info('Work stopped')
 
 
-def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, task_id: int) -> WorkItem:
-    """
-    INSERT INTO main.work_items (task_id, start_timestamp, end_timestamp) VALUES (?,?,?), task_id, start_ts, end_ts
-    """
+def _work_item_dt_range_validation(
+    db_session: Session,
+    object_id: int | None,
+    start_ts: int,
+    end_ts: int | None,
+) -> None:
+    # 1. Validate
+    if end_ts is not None and start_ts >= end_ts:
+        raise WorkItemDtRangeValidationError(
+            'The start date and time of the work element must be before its end.'
+        )
+
+    # 2. Validate existing work items
+    conditions = [
+        # for all work items
+        and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
+    ]
+    if end_ts is None:
+        conditions.append(WorkItem.end_timestamp == None)  # only one current WI is available
+    else:
+        conditions.extend([
+            # for finished work items
+            and_(WorkItem.start_timestamp <= end_ts, WorkItem.end_timestamp >= end_ts),
+            # for current work item (if exists)
+            and_(WorkItem.end_timestamp == None, WorkItem.start_timestamp <= end_ts),
+        ])
+
+    filters = [
+        or_(*conditions),
+    ]
+    if object_id is not None:  # on create
+        filters.append(WorkItem.id != object_id)
+
+    result = db_session.query(WorkItem).filter(*filters).one_or_none()
+    if result is not None:
+        raise WorkItemDtRangeValidationError('The work item with this date and time range already exists.')
+
+
+def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime | None, task_id: int) -> WorkItem:
     start_ts = dt_to_ts(start_dt)
-    end_ts = dt_to_ts(end_dt)
+    end_ts = end_dt and dt_to_ts(end_dt)
+    _work_item_dt_range_validation(db_session, None, start_ts, end_ts)
+
     obj = WorkItem(
         task_id=task_id,
         start_timestamp=start_ts,
@@ -214,9 +296,53 @@ def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, 
 
 
 def work_item_delete(db_session: Session, id_: int) -> None:
-    """DELETE FROM main.work_items WHERE id = ?, id_"""
-    db_session.query(WorkItem).filter(WorkItem.id == id_).delete()
-    db_session.flush()
+    work_item = db_session.get(WorkItem, id_)
+    if work_item is None:
+        raise HTTPException(status_code=404, detail='WorkItem not found')
+    db_session.delete(work_item)
+    db_session.commit()
+
+
+def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime | None) -> WorkItem:
+    start_ts = dt_to_ts(start)
+    end_ts = end and dt_to_ts(end)
+    _work_item_dt_range_validation(db_session, id_, start_ts, end_ts)
+
+    db_session.query(WorkItem).filter(WorkItem.id == id_).update({
+        'task_id': task_id,
+        'start_timestamp': start_ts,
+        'end_timestamp': end_ts,
+    })
+    db_session.commit()
+    return work_item_read(db_session, id_)
+
+
+def work_item_update_partial(
+    db_session: Session,
+    id_: int,
+    task_id: int | None,
+    start: datetime | None,
+    end: datetime | None,
+) -> WorkItem:
+    work_item = work_item_read(db_session, id_)
+
+    if task_id is not None:
+        work_item.task_id = task_id
+    if start is not None:
+        work_item.start_timestamp = dt_to_ts(start)
+    if end is not None:
+        work_item.end_timestamp = dt_to_ts(end)
+
+    _work_item_dt_range_validation(
+        db_session,
+        id_,
+        work_item.start_timestamp,
+        work_item.end_timestamp,
+    )
+
+    db_session.commit()
+
+    return work_item
 
 
 # Reporting

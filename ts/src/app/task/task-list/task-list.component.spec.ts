@@ -7,6 +7,8 @@ import {TaskService} from '../services/task.service';
 import {WorkService} from '../../work/services/work.service';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {FormsModule} from '@angular/forms';
+import {MatSnackBarModule} from "@angular/material/snack-bar";
+import {MatDialogModule} from "@angular/material/dialog";
 
 describe('TaskListComponent', () => {
   let component: TaskListComponent;
@@ -19,6 +21,8 @@ describe('TaskListComponent', () => {
         MatTableModule,
         MatCheckboxModule,
         FormsModule,
+        MatSnackBarModule,
+        MatDialogModule,
       ],
       declarations: [TaskListComponent],
       providers: [TaskService, WorkService],

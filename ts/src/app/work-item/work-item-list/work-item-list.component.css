@@ -1,0 +1,18 @@
+.basic-container {
+  padding: 30px;
+}
+
+.button-container {
+  display: flex;
+  gap: 8px; /* Задайте необходимый промежуток между кнопками */
+}
+
+.work-item-list-actions {
+  display: flex;
+}
+
+.work-item-add {
+  flex: 1;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}

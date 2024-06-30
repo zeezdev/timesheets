@@ -1,0 +1,72 @@
+<div class="mat-app-background basic-container">
+  <h2>Work Items</h2>
+
+  <div class="work-item-list-actions">
+    <div class="work-item-add">
+      <a routerLink="/work-items/add" routerLinkActive="active" ariaCurrentWhenActive="page">Create Work Item</a>
+    </div>
+  </div>
+
+  <table mat-table [dataSource]="data" class="mat-elevation-z8">
+    <!-- Id Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>Id</th>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/work-items', element.id]">
+          {{ element.id }}
+        </a>
+      </td>
+    </ng-container>
+
+    <!-- Task column -->
+    <ng-container matColumnDef="task">
+      <th mat-header-cell *matHeaderCellDef>Task</th>
+      <td mat-cell *matCellDef="let element">
+        <a [routerLink]="['/tasks', element.task.id]">
+          {{ element.task.name }}
+        </a>
+      </td>
+    </ng-container>
+
+    <!-- Start Column -->
+    <ng-container matColumnDef="start_dt">
+      <th mat-header-cell *matHeaderCellDef>Start</th>
+      <td mat-cell *matCellDef="let element">{{ element.start_dt | date:'YYYY/MM/dd HH:mm:ss':'UTC' }}</td>
+    </ng-container>
+
+    <!-- End Column -->
+    <ng-container matColumnDef="end_dt">
+      <th mat-header-cell *matHeaderCellDef>End</th>
+      <td mat-cell *matCellDef="let element">{{ element.end_dt | date: 'YYYY/MM/dd HH:mm:ss':'UTC' }}</td>
+    </ng-container>
+
+    <!-- Actions -->
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef> Action </th>
+      <td mat-cell *matCellDef="let element">
+        <div class="button-container">
+          <button mat-flat-button
+            [color]="'warn'"
+            (click)="doDeleteWorkItem(element)"
+            style="margin:4px"
+          >
+            <mat-icon>delete_forever</mat-icon>
+            Del
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+  <mat-paginator
+    *ngIf="data.page$ | async as page"
+    [length]="page.total"
+    [pageSize]="page.size"
+    [pageIndex]="page.page-1"
+    [hidePageSize]="true"
+    [showFirstLastButtons]="true"
+    (page)="doFetch($event.pageIndex+1)"
+  ></mat-paginator>
+</div>

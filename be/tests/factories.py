@@ -37,14 +37,6 @@ class TaskFactory(SQLAlchemyModelFactory):
     category = factory.SubFactory(CategoryFactory)
     is_archived = factory.Faker('boolean')
 
-    @factory.post_generation
-    def work_items(self, create, extracted, **kwargs):
-        if not create:
-            return
-
-        if extracted is None:
-            WorkItemFactory(task=self)
-
 
 def start_timestamp(n):
     result = get_now_timestamp() + (n * 300)  # 5min.
