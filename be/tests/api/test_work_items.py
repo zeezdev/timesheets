@@ -44,6 +44,29 @@ def test_work_items_list(session):
     }
 
 
+@pytest.mark.parametrize('order_by,sorted_key,reverse', [
+    ('id', 'id', False),
+    ('id', 'id', True),
+    ('start_dt', 'start_timestamp', False),
+    ('start_dt', 'start_timestamp', True),
+    ('end_dt', 'end_timestamp', False),
+    ('end_dt', 'end_timestamp', True),
+])
+def test_work_items_order_by(session, order_by, sorted_key, reverse):
+    work_items = WorkItemFactory.create_batch(10)
+    expected_ids = [
+        wi.id for wi in
+        sorted(work_items, key=lambda x: getattr(x, sorted_key), reverse=reverse)
+    ]
+    direction = '-' if reverse else ''
+
+    response = client.get(f'/api/work/items/?order_by={direction}{order_by}')
+
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert [item['id'] for item in items] == expected_ids
+
+
 @pytest.mark.parametrize('instance_kwargs', [
     {},
     {'end_timestamp': None},  # the current WI

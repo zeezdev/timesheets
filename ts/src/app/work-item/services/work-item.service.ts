@@ -29,8 +29,9 @@ export class WorkItemService {
   }
 
   page(request: PageRequest<WorkItem>, query: WorkItemQuery): Observable<Page<WorkItem>> {
+    const orderBy: string = `${request.sort.order == 'desc' ? '-' : ''}${request.sort.property}`;
     return this.http.get<Page<WorkItem>>(
-      `${this.workItemsUrl}?page=${request.page}&size=${request.size}&order_by=-id`
+      `${this.workItemsUrl}?page=${request.page}&size=${request.size}&order_by=${orderBy}`
     ).pipe(
         tap(page => this.log(`fetched work items page ${page}`)),
         catchError(handleError('page')),

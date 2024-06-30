@@ -14,7 +14,7 @@ const DEFAULT_PAGE_SIZE: number = 10;
 })
 export class WorkItemListComponent {
   displayedColumns: string[] = ['id', 'task', 'start_dt', 'end_dt', 'actions'];
-  initialSort: Sort<WorkItem> = {property: 'id', order: 'desc'}
+  initialSort: Sort<WorkItem> = {property: 'start_dt', order: 'desc'}
   currentPageIndex: number = 1;
 
   data = new PaginatedDataSource<WorkItem, WorkItemQuery>(
