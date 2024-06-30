@@ -84,7 +84,7 @@ class WorkReportTotal(BaseModel):
 # WorkItem
 #
 
-class WorkItem(BaseModel):
+class WorkItemIn(BaseModel):
     task_id: int
     start_dt: datetime
     end_dt: datetime | None

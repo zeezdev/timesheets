@@ -245,23 +245,31 @@ def _work_item_dt_range_validation(
     db_session: Session,
     object_id: int | None,
     start_ts: int,
-    end_ts: int,
+    end_ts: int | None,
 ) -> None:
     # 1. Validate
-    if start_ts >= end_ts:  # TODO: support case when end_ts is None
+    if end_ts is not None and start_ts >= end_ts:
         raise WorkItemDtRangeValidationError(
             'The start date and time of the work element must be before its end.'
         )
 
     # 2. Validate existing work items
-    filters = [
-        or_(
-            # finished work items
-            and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
+    conditions = [
+        # for all work items
+        and_(WorkItem.start_timestamp <= start_ts, WorkItem.end_timestamp >= start_ts),
+    ]
+    if end_ts is None:
+        conditions.append(WorkItem.end_timestamp == None)  # only one current WI is available
+    else:
+        conditions.extend([
+            # for finished work items
             and_(WorkItem.start_timestamp <= end_ts, WorkItem.end_timestamp >= end_ts),
-            # current work item
+            # for current work item (if exists)
             and_(WorkItem.end_timestamp == None, WorkItem.start_timestamp <= end_ts),
-        ),
+        ])
+
+    filters = [
+        or_(*conditions),
     ]
     if object_id is not None:  # on create
         filters.append(WorkItem.id != object_id)
@@ -271,9 +279,9 @@ def _work_item_dt_range_validation(
         raise WorkItemDtRangeValidationError('The work item with this date and time range already exists.')
 
 
-def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime, task_id: int) -> WorkItem:
+def work_item_create(db_session: Session, start_dt: datetime, end_dt: datetime | None, task_id: int) -> WorkItem:
     start_ts = dt_to_ts(start_dt)
-    end_ts = dt_to_ts(end_dt)
+    end_ts = end_dt and dt_to_ts(end_dt)
     _work_item_dt_range_validation(db_session, None, start_ts, end_ts)
 
     obj = WorkItem(
@@ -297,7 +305,7 @@ def work_item_delete(db_session: Session, id_: int) -> None:
 
 def work_item_update(db_session: Session, id_: int, task_id: int, start: datetime, end: datetime | None) -> WorkItem:
     start_ts = dt_to_ts(start)
-    end_ts = dt_to_ts(end)
+    end_ts = end and dt_to_ts(end)
     _work_item_dt_range_validation(db_session, id_, start_ts, end_ts)
 
     db_session.query(WorkItem).filter(WorkItem.id == id_).update({
@@ -322,7 +330,7 @@ def work_item_update_partial(
         work_item.task_id = task_id
     if start is not None:
         work_item.start_timestamp = dt_to_ts(start)
-    if end is not  None:
+    if end is not None:
         work_item.end_timestamp = dt_to_ts(end)
 
     _work_item_dt_range_validation(

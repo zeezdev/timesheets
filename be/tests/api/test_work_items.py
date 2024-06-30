@@ -9,6 +9,36 @@ from tests.factories import WorkItemFactory, TaskFactory
 client = TestClient(app)
 
 
+def test_work_items_add(session):
+    task = TaskFactory()
+    now = get_now_timestamp()
+    create_data = {
+        'task_id': task.id,
+        'start_dt': ts_to_dt(now).isoformat(),
+        'end_dt': ts_to_dt(now + 1000).isoformat(),
+    }
+
+    response = client.post('/api/work/items/', json=create_data)
+
+    assert response.status_code == 201
+    res_json = response.json()
+    wi_id = res_json['id']
+    assert res_json == {
+        'id': wi_id,
+        'task': {
+            'id': task.id,
+            'name': task.name,
+        },
+        'start_dt': create_data['start_dt'],
+        'end_dt': create_data['end_dt'],
+    }
+    created_wi = session.query(WorkItem).filter(WorkItem.id == wi_id).one_or_none()
+    assert created_wi is not None
+    assert created_wi.task_id == task.id
+    assert created_wi.start_timestamp == now
+    assert created_wi.end_timestamp == now + 1000
+
+
 def test_work_items_list_empty(session):
     assert session.query(WorkItem).count() == 0
 

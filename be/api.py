@@ -219,7 +219,7 @@ def get_work_report_total(
 
 
 @router.post('/work/items/', response_model=schemas.WorkItemOut, status_code=201)
-def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
+def work_items_add(work_item: schemas.WorkItemIn, db_session: DbSession):
     created_work_item = work_item_create(
         db_session,
         work_item.start_dt,
@@ -229,7 +229,7 @@ def work_items_add(work_item: schemas.WorkItem, db_session: DbSession):
     return schemas.WorkItemOut(
         id=created_work_item.id,
         start_dt=ts_to_dt(created_work_item.start_timestamp),
-        end_dt=ts_to_dt(created_work_item.end_timestamp),
+        end_dt=created_work_item.end_timestamp and ts_to_dt(created_work_item.end_timestamp),
         task=schemas.TaskMinimal(
             id=created_work_item.task.id,
             name=created_work_item.task.name,
@@ -283,7 +283,7 @@ def work_items_retrieve(work_item_id: int, db_session: DbSession):
             name=work_item.task.name,
         ),
         start_dt=ts_to_dt(work_item.start_timestamp),
-        end_dt=None if work_item.end_timestamp is None else ts_to_dt(work_item.end_timestamp),
+        end_dt=work_item.end_timestamp and ts_to_dt(work_item.end_timestamp),
     )
 
 
@@ -304,7 +304,7 @@ def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session
             name=updated_work_item.task.name,
         ),
         start_dt=ts_to_dt(updated_work_item.start_timestamp),
-        end_dt=ts_to_dt(updated_work_item.end_timestamp),
+        end_dt=updated_work_item.end_timestamp and ts_to_dt(updated_work_item.end_timestamp),
     )
 
 
@@ -325,7 +325,7 @@ def work_item_save_partial(work_item_id: int, work_item: schemas.WorkItemPartial
             name=updated_work_item.task.name,
         ),
         start_dt=ts_to_dt(updated_work_item.start_timestamp),
-        end_dt=ts_to_dt(updated_work_item.end_timestamp),
+        end_dt=updated_work_item.end_timestamp and ts_to_dt(updated_work_item.end_timestamp),
     )
 
 
