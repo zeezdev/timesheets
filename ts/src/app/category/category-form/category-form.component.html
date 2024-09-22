@@ -1,5 +1,5 @@
 <div class="mat-app-background basic-container">
-  <h2>Category #{{ category?.id }}</h2>
+  <h1>Category #{{ category?.id }}</h1>
   <form class="category-form" #categoryForm=ngForm (ngSubmit)="onSubmit(categoryForm)">
     <mat-form-field class="category-full-width" [ngClass]="{'invisible' : category == null}">
       <mat-label for="id">ID:</mat-label>

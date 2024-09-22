@@ -5,6 +5,7 @@ import {Category} from "./category";
 import {Injectable} from "@angular/core";
 import {AppSettings} from "../../app.settings";
 import {handleError} from "../../shared/utils";
+import {Router} from "@angular/router";
 
 
 @Injectable()
@@ -16,6 +17,7 @@ export class CategoryService {
 
   constructor(
     private http: HttpClient,
+    private router: Router,
   ) { }
 
   /** GET a category list from the server */
@@ -23,7 +25,7 @@ export class CategoryService {
     return this.http.get<Category[]>(this.categoriesUrl)
       .pipe(
         tap(categories => this.log(`fetched categories ${categories}`)),
-        catchError(handleError('getCategories')),
+        catchError(handleError('getCategories', this.router)),
       ) as Observable<Category[]>;
   }
 
@@ -32,7 +34,7 @@ export class CategoryService {
     return this.http.get<Category>(`${this.categoriesUrl}/${id}`)
       .pipe(
         tap(category => this.log(`fetched category ${category}`)),
-        catchError(handleError('getCategory'))
+        catchError(handleError('getCategory', this.router))
       ) as Observable<Category>;
   }
 

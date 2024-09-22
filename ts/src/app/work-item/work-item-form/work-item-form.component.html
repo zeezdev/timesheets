@@ -1,5 +1,5 @@
 <div class="mat-app-background basic-container">
-  <h2>Work Item #{{ workItem?.id }}</h2>
+  <h1>Work Item #{{ workItem?.id }}</h1>
 
   <form class="work-item-form" #workItemForm=ngForm (ngSubmit)="onSubmit(workItemForm)">
     <mat-form-field class="work-item-full-width" [ngClass]="{'invisible': workItem == null}">

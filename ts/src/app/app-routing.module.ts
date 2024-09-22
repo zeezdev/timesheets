@@ -7,8 +7,11 @@ import {CategoryFormComponent} from "./category/category-form/category-form.comp
 import {WorkComponent} from "./work/work.component";
 import {WorkItemListComponent} from './work-item/work-item-list/work-item-list.component';
 import {WorkItemFormComponent} from './work-item/work-item-form/work-item-form.component';
+import {PageNotFoundComponent} from "./page-not-found/page-not-found/page-not-found.component";
+import {MainPageComponent} from "./main/main-page/main-page.component";
 
 const routes: Routes = [
+  {path: '', component: MainPageComponent},
   {path: 'categories', component: CategoryListComponent},
   {path: 'categories/:id', component: CategoryFormComponent},
   {path: 'tasks', component: TaskListComponent},
@@ -16,6 +19,9 @@ const routes: Routes = [
   {path: 'work', component: WorkComponent},
   {path: 'work-items', component: WorkItemListComponent},
   {path: 'work-items/:id', component: WorkItemFormComponent},
+  // {path: '**', pathMatch: 'full', component: PageNotFoundComponent}
+  {path: 'not-found', component: PageNotFoundComponent},
+  {path: '**', redirectTo: '/not-found'}
 ];
 
 @NgModule({

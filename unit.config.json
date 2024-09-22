@@ -27,7 +27,10 @@
         },
         {
             "action": {
-                "share": "/www/static/$uri"
+                "share": "/www/static/$uri",
+                "fallback": {
+                    "share": "/www/static/index.html"
+                }
             }
         }
     ]

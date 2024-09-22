@@ -11,6 +11,12 @@ import {TaskModule} from './task/task.module';
 import {SharedModule} from './shared/shared.module';
 import {WorkModule} from './work/work.module';
 import {WorkItemModule} from './work-item/work-item.module';
+import {PageNotFoundModule} from "./page-not-found/page-not-found-module";
+import {MatSidenavModule} from "@angular/material/sidenav";
+import {MatToolbarModule} from "@angular/material/toolbar";
+import {MatIconModule} from "@angular/material/icon";
+import {MatButtonModule} from "@angular/material/button";
+import {MainModule} from "./main/main.module";
 
 @NgModule({
   declarations: [
@@ -29,6 +35,12 @@ import {WorkItemModule} from './work-item/work-item.module';
     SharedModule,
     WorkModule,
     WorkItemModule,
+    PageNotFoundModule,
+    MainModule,
+    MatSidenavModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
   ],
   bootstrap: [AppComponent]
 })

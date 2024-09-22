@@ -1,23 +1,37 @@
-<!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
-  <h1><a href="/">Simple TimeSheets</a></h1>
-</div>
+<mat-toolbar color="primary" style="position: sticky; top: 0; z-index: 1000;">
+  <button mat-icon-button (click)="sidenav.toggle()">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <div style="text-align:center">
+    <h1><a routerLink="/" style="text-decoration: none; color: inherit;">Simple Timesheets</a></h1>
+  </div>
+  <span class="spacer"></span>
+  <mat-icon class="logo">event</mat-icon>
+</mat-toolbar>
 
-<nav>
-  <ul>
-    <li>
-      <h2><a routerLink="/categories" routerLinkActive="active" ariaCurrentWhenActive="page">Categories</a></h2>
-    </li>
-    <li>
-      <h2><a routerLink="/tasks" routerLinkActive="active" ariaCurrentWhenActive="page">Tasks</a></h2>
-    </li>
-    <li>
-      <h2><a routerLink="/work-items" routerLinkActive="active" ariaCurrentWhenActive="page">Work items</a></h2>
-    </li>
-    <li>
-      <h2><a routerLink="/work" routerLinkActive="active" ariaCurrentWhenActive="page">Work report</a></h2>
-    </li>
-  </ul>
-</nav>
+<mat-sidenav-container style="height: 100vh;">
+  <mat-sidenav #sidenav mode="side" opened>
+    <nav>
+      <ul>
+        <li>
+          <h2><a routerLink="/categories" routerLinkActive="active" ariaCurrentWhenActive="page">Categories</a></h2>
+        </li>
+        <li>
+          <h2><a routerLink="/tasks" routerLinkActive="active" ariaCurrentWhenActive="page">Tasks</a></h2>
+        </li>
+        <li>
+          <h2><a routerLink="/work-items" routerLinkActive="active" ariaCurrentWhenActive="page">Work items</a></h2>
+        </li>
+        <li>
+          <h2><a routerLink="/work" routerLinkActive="active" ariaCurrentWhenActive="page">Work report</a></h2>
+        </li>
+      </ul>
+    </nav>
+  </mat-sidenav>
 
-<router-outlet></router-outlet>
+  <mat-sidenav-content>
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
