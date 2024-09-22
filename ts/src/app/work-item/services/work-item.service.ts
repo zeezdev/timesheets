@@ -6,6 +6,7 @@ import {catchError} from "rxjs/operators";
 import {handleError} from "../../shared/utils";
 import {AppSettings} from "../../app.settings";
 import {Page, PageRequest} from "../../shared/pagination";
+import {Router} from "@angular/router";
 
 
 export interface WorkItemQuery {
@@ -22,6 +23,7 @@ export class WorkItemService {
 
   constructor(
     private http: HttpClient,
+    private router: Router,
   ) { }
 
   private log(message: string) {
@@ -57,7 +59,7 @@ export class WorkItemService {
       `${this.workItemsUrl}/${id}`,
     ).pipe(
       tap(() => this.log(`Delete WorkItem ID=${id}`)),
-      catchError(handleError('deleteWorkItem')),
+      catchError(handleError('deleteWorkItem', this.router)),
     );
   }
 

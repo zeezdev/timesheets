@@ -4,19 +4,28 @@ import { AppComponent } from './app.component';
 import {OverworkingWatcher} from "./work/services/overworking.service";
 import {WorkService} from "./work/services/work.service";
 import {HttpClientTestingModule} from "@angular/common/http/testing";
+import {MatToolbarModule} from "@angular/material/toolbar";
+import {MatIconModule} from "@angular/material/icon";
+import {MatSidenavModule} from "@angular/material/sidenav";
+import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 
 describe('AppComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
-        RouterTestingModule
+        RouterTestingModule,
+        MatToolbarModule,
+        MatIconModule,
+        MatSidenavModule,
+        BrowserAnimationsModule,
       ],
       declarations: [
         AppComponent
       ],
       providers: [
-        OverworkingWatcher, WorkService,
+        OverworkingWatcher,
+        WorkService,
       ]
     }).compileComponents();
   }));
