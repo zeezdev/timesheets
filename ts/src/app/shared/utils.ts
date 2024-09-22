@@ -1,5 +1,6 @@
 import {defer, Observable} from "rxjs";
 import {HttpErrorResponse} from "@angular/common/http";
+import {Router} from "@angular/router";
 
 export function pad(num: number, size: number = 2, char: string = '0'): string {
   /**
@@ -24,11 +25,16 @@ export function asyncError<T>(errorObject: any) {
  * Let the app continue.
  *
  * @param operation - name of the operation that failed
+ * @param router - name of the operation that failed
  */
-export function handleError<T>(operation = 'operation') {
+export function handleError<T>(operation = 'operation', router?: Router) {
   return (error: HttpErrorResponse): Observable<T> => {
     // TODO: send the error to remote logging infrastructure
     console.error(error); // log to console instead
+
+    if (router && error.status === 404) {
+      router.navigate(['/not-found']);
+    }
 
     // If a native error is caught, do not transform it. We only want to
     // transform response errors that are not wrapped in an `Error`.
@@ -41,3 +47,27 @@ export function handleError<T>(operation = 'operation') {
     throw new Error(`${operation} failed: ${message}`);
   };
 }
+
+
+// export class ErrorHandlingService {
+//   constructor(private router: Router) {}
+//
+//   handleError(error: HttpErrorResponse): Observable<never> {
+//     // TODO: send the error to remote logging infrastructure
+//     console.error(error); // log to console instead
+//
+//     if (error.status === 404) {
+//       this.router.navigate(['/not-found']);
+//     }
+//
+//         // If a native error is caught, do not transform it. We only want to
+//     // transform response errors that are not wrapped in an `Error`.
+//     if (error.error instanceof Event) {
+//       throw error.error;
+//     }
+//
+//     const message = `server returned code ${error.status} with body "${error.error}"`;
+//     // TODO: better job of transforming error for user consumption
+//     throw new Error(`${operation} failed: ${message}`);
+//   }
+// }

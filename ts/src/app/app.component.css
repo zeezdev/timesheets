@@ -1,8 +1,53 @@
 body {
   font-family: Roboto, Arial, sans-serif;
-  margin: 0;
+}
+
+mat-toolbar {
+  height: 64px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+mat-sidenav-container {
+  height: calc(100vh - 64px) !important;
+}
+
+mat-sidenav {
+  width: 180px;
+  background: #f5f5f5;
+  padding-top: 10px;
+  padding-left: 16px;
+}
+
+mat-sidenav-content {
+  padding: 0 16px 0 16px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 10px;
 }
 
 a {
   text-decoration: none;
+  color: #3f51b5;
+}
+
+a.active {
+  font-weight: bold;
+  color: #1a237e;
+}
+
+.spacer {
+  flex: 1; /* fill all available space */
+}
+
+.logo {
+  margin-left: 16px;
 }

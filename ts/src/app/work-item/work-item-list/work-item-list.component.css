@@ -1,10 +1,15 @@
+h1 {
+  margin-block-start: 0;
+  font-size: 24px;
+}
+
 .basic-container {
   padding: 30px;
 }
 
 .button-container {
   display: flex;
-  gap: 8px; /* Задайте необходимый промежуток между кнопками */
+  gap: 8px; /* Set the required gap between buttons */
 }
 
 .work-item-list-actions {

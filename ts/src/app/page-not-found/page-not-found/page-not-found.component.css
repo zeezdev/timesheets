@@ -1,0 +1,24 @@
+p, h1 {
+  margin: 0;
+}
+
+.centered-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 64px); /* Height excluding toolbar */
+  overflow: hidden;
+  text-align: center;
+}
+
+.code-404 {
+  font-size: 140px;
+}
+
+.page-icon {
+  font-size: 100px;
+  margin-bottom: 20px;
+  width: auto;
+  height: auto;
+}
