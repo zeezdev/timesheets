@@ -1,5 +1,8 @@
 # Timesheet - time tracking system
 
+## User interface
+![Categories list page](readme-img-categories.png)
+
 ## Up from Docker
 
 ```bash
