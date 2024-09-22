@@ -5,6 +5,7 @@ import {Injectable} from "@angular/core";
 import {AppSettings} from "../../app.settings";
 import {catchError} from "rxjs/operators";
 import {handleError} from "../../shared/utils";
+import {Router} from "@angular/router";
 
 
 @Injectable()
@@ -16,6 +17,7 @@ export class TaskService {
 
   constructor(
     private http: HttpClient,
+    private router: Router,
   ) { }
 
   /** GET tasks from the server */
@@ -36,7 +38,7 @@ export class TaskService {
     return this.http.get<Task>(`${this.tasksUrl}/${taskId}`)
       .pipe(
         tap(task => this.log(`fetched task ${task}`)),
-        catchError(handleError('getTask'))
+        catchError(handleError('getTask', this.router))
       ) as Observable<Task>;
   }
 

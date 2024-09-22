@@ -19,7 +19,6 @@ const routes: Routes = [
   {path: 'work', component: WorkComponent},
   {path: 'work-items', component: WorkItemListComponent},
   {path: 'work-items/:id', component: WorkItemFormComponent},
-  // {path: '**', pathMatch: 'full', component: PageNotFoundComponent}
   {path: 'not-found', component: PageNotFoundComponent},
   {path: '**', redirectTo: '/not-found'}
 ];

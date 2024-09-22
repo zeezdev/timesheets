@@ -1,17 +1,21 @@
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {TaskService} from "./task.service";
-import {of} from "rxjs";
+import {of, throwError} from "rxjs";
 import {Task} from "./task";
 import {asyncError} from "../../shared/utils";
+import {async, TestBed} from "@angular/core/testing";
+import {Router} from "@angular/router";
 
 
 describe('TaskService', () => {
   let httpClientSpy: jasmine.SpyObj<HttpClient>;
+  let routerSpy: jasmine.SpyObj<Router>;
   let taskService: TaskService;
 
   beforeEach(() => {
     httpClientSpy = jasmine.createSpyObj('HttpClient', ['get', 'put', 'post']);
-    taskService = new TaskService(httpClientSpy);
+    routerSpy = jasmine.createSpyObj('Router', ['navigate'])
+    taskService = new TaskService(httpClientSpy, routerSpy);
   });
 
   it('should return expected tasks (HttpClient called once)', (done: DoneFn) => {
@@ -174,5 +178,23 @@ describe('TaskService', () => {
         taskForCreate,
         taskService.httpOptions,
       );
+  });
+
+  it('should navigate to /not-found when task not found (404)', (done: DoneFn) => {
+    const errorResponse = new HttpErrorResponse({
+      error: '404 error',
+      status: 404,
+      statusText: 'Not Found'
+    });
+
+    httpClientSpy.get.and.returnValue(throwError(() => errorResponse));
+
+    taskService.getTask(999).subscribe({
+      next: () => done.fail('Expected an error, not a task'),
+      error: () => {
+        expect(routerSpy.navigate).toHaveBeenCalledOnceWith(['/not-found']);
+        done();
+      }
+    });
   });
 });

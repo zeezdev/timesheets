@@ -1,17 +1,20 @@
 import {CategoryService} from "./category.service";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {Category} from "./category";
-import {of} from "rxjs";
+import {of, throwError} from "rxjs";
 import {asyncError} from "../../shared/utils";
+import {Router} from "@angular/router";
 
 
 describe('CategoryService', () => {
   let httpClientSpy: jasmine.SpyObj<HttpClient>;
+  let routerSpy: jasmine.SpyObj<Router>;
   let categoryService: CategoryService;
 
   beforeEach(() => {
     httpClientSpy = jasmine.createSpyObj('HttpClient', ['get', 'put', 'post']);
-    categoryService = new CategoryService(httpClientSpy);
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    categoryService = new CategoryService(httpClientSpy, routerSpy);
   });
 
   it('should return expected categories (HttpClient called once)', (done: DoneFn) => {
@@ -132,5 +135,23 @@ describe('CategoryService', () => {
         categoryForCreate,
         categoryService.httpOptions,
       );
+  });
+
+  it('should navigate to /not-found when category not found (404)', (done: DoneFn) => {
+    const errorResponse = new HttpErrorResponse({
+      error: '404 error',
+      status: 404,
+      statusText: 'Not Found'
+    });
+
+    httpClientSpy.get.and.returnValue(throwError(() => errorResponse));
+
+    categoryService.getCategory(999).subscribe({
+      next: () => done.fail('Expected an error, not a category'),
+      error: () => {
+        expect(routerSpy.navigate).toHaveBeenCalledWith(['/not-found']);
+        done();
+      }
+    });
   });
 });
