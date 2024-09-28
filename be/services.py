@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Sequence, Type, Any
 
 from fastapi import HTTPException
-from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_
+from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_, Boolean
 from sqlalchemy.orm import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
 
@@ -93,7 +93,11 @@ def task_update(db_session: Session, id_: int, name: str, category_id: int, is_a
     return task_read(db_session, id_)
 
 
-def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[Row]:
+def task_list(
+        db_session: Session,
+        is_archived: bool | None = None,
+        is_current: bool | None = None,
+) -> Sequence[Row]:
     """
     'SELECT t.id, t.name, t.category_id, c.name AS category_name, t.is_archived, '
     'CASE WHEN w.id IS NULL THEN 0 ELSE 1 END is_current '
@@ -111,9 +115,9 @@ def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[
         case(
             (
                 WorkItem.id.is_(None),
-                literal_column('0'),
+                literal_column('FALSE', Boolean),
             ),
-            else_=literal_column('1')
+            else_=literal_column('TRUE', Boolean)
         ).label('is_current'),
     ).join(
         Task.category
@@ -125,6 +129,8 @@ def task_list(db_session: Session, is_archived: bool | None = None) -> Sequence[
     # Filtration
     if is_archived is not None:
         smth = smth.filter(Task.is_archived == is_archived)
+    if is_current is not None:
+        smth = smth.filter(literal_column('is_current', Boolean) == is_current)
 
     rows = db_session.execute(smth).all()
     return rows

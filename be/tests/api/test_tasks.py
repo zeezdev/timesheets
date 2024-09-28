@@ -36,22 +36,41 @@ def test_tasks_list(session):
     ]
 
 
-@pytest.mark.parametrize('is_archived', [True, False])
-def test_tasks_list_filtration(session, is_archived):
+@pytest.mark.parametrize('filter_value', [True, False])
+def test_tasks_list_filter_by_is_archived(session, filter_value):
     # Arrange
     tasks = [
-        TaskFactory(is_archived=is_archived),
-        TaskFactory(is_archived=not is_archived),
-        TaskFactory(is_archived=is_archived),
+        TaskFactory(is_archived=filter_value),
+        TaskFactory(is_archived=not filter_value),
+        TaskFactory(is_archived=filter_value),
     ]
     expected_ids = sorted([tasks[0].id, tasks[2].id])
 
     # Act
-    response = client.get('/api/tasks', params={'is_archived': is_archived})
+    response = client.get('/api/tasks', params={'is_archived': filter_value})
 
     # Arrange
     assert response.status_code == 200
-    assert sorted(map(lambda x: x['id'], response.json())) == expected_ids
+    assert sorted([x['id'] for x in response.json()]) == expected_ids
+
+
+@pytest.mark.parametrize('filter_value', [True, False])
+def test_tasks_list_filter_by_is_current(session, filter_value):
+    # Arrange
+    task1 = TaskFactory()
+    task2 = TaskFactory()
+    task3 = WorkItemFactory(end_timestamp=None).task  # current
+    if filter_value:
+        expected_ids = [task3.id]
+    else:
+        expected_ids = sorted([task1.id, task2.id])
+
+    # Act
+    response = client.get('/api/tasks', params={'is_current': filter_value})
+
+    # Arrange
+    assert response.status_code == 200
+    assert sorted([x['id'] for x in response.json()]) == expected_ids
 
 
 def test_tasks_retrieve(session):

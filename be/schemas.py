@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import Annotated
 
+from fastapi.params import Query
 from pydantic import BaseModel
 
 
@@ -43,11 +45,16 @@ class TaskUpdate(BaseModel):
     is_archived: bool
 
 
+class TaskFilterParams(BaseModel):
+    is_current: bool | None = None
+    is_archived: bool | None = None
+
+
 class TaskOut(BaseModel):
     id: int
     name: str
     category: CategoryMinimal
-    is_current: int
+    is_current: bool
     is_archived: bool
 
 
