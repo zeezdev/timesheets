@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse
 import schemas
 from database import get_db
 from dt import ts_to_dt
+from schemas import TaskFilterParams
 from services import (
     category_list,
     category_create,
@@ -88,8 +89,12 @@ def categories_save(category_id: int, category: schemas.CategoryOut, db_session:
 
 
 @router.get('/tasks', response_model=list[schemas.TaskOut])
-def tasks_list(db_session: DbSession, is_archived: bool | None = None):
-    rows = task_list(db_session, is_archived=is_archived)
+def tasks_list(db_session: DbSession, filter_query: TaskFilterParams = Depends()):
+    rows = task_list(
+        db_session,
+        is_archived=filter_query.is_archived,
+        is_current=filter_query.is_current,
+    )
     return [schemas.TaskOut(
         id=row.id,
         name=row.name,

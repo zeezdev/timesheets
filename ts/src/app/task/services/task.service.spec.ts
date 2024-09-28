@@ -20,9 +20,9 @@ describe('TaskService', () => {
 
   it('should return expected tasks (HttpClient called once)', (done: DoneFn) => {
     const expectedTasks: Task[] = [
-      {id: 1, name: 'TestTask1', category: {id: 1, name: 'TestCategory1'}, is_current: 0, is_archived: true},
-      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: 1, is_archived: false},
-      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: 0, is_archived: false},
+      {id: 1, name: 'TestTask1', category: {id: 1, name: 'TestCategory1'}, is_current: false, is_archived: true},
+      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: true, is_archived: false},
+      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: false, is_archived: false},
     ];
 
     httpClientSpy.get.and.returnValue(of(expectedTasks));
@@ -46,8 +46,8 @@ describe('TaskService', () => {
 
   it('should return non archived tasks only (HttpClient called once)', (done: DoneFn) => {
     const expectedTasks: Task[] = [
-      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: 1, is_archived: false},
-      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: 0, is_archived: false},
+      {id: 2, name: 'TestTask2', category: {id: 1, name: 'TestCategory1'}, is_current: true, is_archived: false},
+      {id: 3, name: 'TestTask3', category: {id: 2, name: 'TestCategory2'}, is_current: false, is_archived: false},
     ];
 
     httpClientSpy.get.and.returnValue(of(expectedTasks));
@@ -92,7 +92,7 @@ describe('TaskService', () => {
       id: 2,
       name: 'TestTask2',
       category: {id: 1, name: 'TestCategory1'},
-      is_current: 1,
+      is_current: true,
       is_archived: false,
     };
 
@@ -120,7 +120,7 @@ describe('TaskService', () => {
     const expectedTask: Task = {
       ...taskForUpdate,
       category: {id: 1, name: 'TestCategory1'},
-      is_current: 1,
+      is_current: true,
       is_archived: false,
     };
 
@@ -153,7 +153,7 @@ describe('TaskService', () => {
       ...taskForCreate,
       id: 1,
       category: {id: 1, name: 'TestCategory1'},
-      is_current: 0,
+      is_current: false,
       is_archived: false,
     };
 

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { MainPageComponent } from './main-page.component';
-import {MatIcon, MatIconModule} from "@angular/material/icon";
+import { MatIconModule } from "@angular/material/icon";
 
 describe('MainPageComponent', () => {
   let component: MainPageComponent;

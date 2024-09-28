@@ -5,6 +5,6 @@ export interface Task {
     id: number;
     name?: string;
   };
-  is_current?: number;
+  is_current?: boolean;
   is_archived?: boolean;
 }
