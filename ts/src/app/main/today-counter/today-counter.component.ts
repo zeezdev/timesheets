@@ -12,8 +12,7 @@ import {TodayCounterSharedService} from "./services/today-counter-shared.service
   styleUrls: ['./today-counter.component.css']
 })
 export class TodayCounterComponent implements OnInit {
-  value: string = '';
-  workSeconds: number = null;
+  counterSeconds: number = null;
   counterIntervalSubscription = null;
 
   constructor(
@@ -22,12 +21,12 @@ export class TodayCounterComponent implements OnInit {
     private todayCounterService: TodayCounterSharedService,
   ) {}
 
-  private displayValue() {
-    this.value = this.secondsToHHMMSS(this.workSeconds);
+  get displayValue() {
+    return this.secondsToHHMMSS(this.counterSeconds);
   }
 
   private secondsToHHMMSS(seconds: number | null): string {
-    if (seconds === null) {
+    if (!seconds) {
       return '00:00:00';
     }
 
@@ -46,10 +45,7 @@ export class TodayCounterComponent implements OnInit {
     console.log('startCounter()');
     const counterInterval = interval(1000);
     this.counterIntervalSubscription = counterInterval.subscribe(
-      () => {
-        this.workSeconds++;
-        this.displayValue();
-      }
+      () => this.counterSeconds++
     );
   }
 
@@ -60,14 +56,8 @@ export class TodayCounterComponent implements OnInit {
     }
   }
 
-  ngOnInit(): void {
-    this.todayCounterService.startCall$.subscribe(() => {
-      this.startCounter();
-    });
-    this.todayCounterService.stopCall$.subscribe(() => {
-      this.stopCounter();
-    });
-
+  initCounter(): void {
+    // Time range for today
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const end = new Date();
@@ -75,8 +65,7 @@ export class TodayCounterComponent implements OnInit {
 
     this.workService.getWorkReportTotal(start, end).subscribe(
       (report: WorkReportTotal) => {
-        this.workSeconds = report.time;
-        this.displayValue();
+        this.counterSeconds = report.time;
 
         // check if is an active work (Task.isCurrent==True) to start increment
         this.taskService.getTasks(undefined, true).subscribe(
@@ -88,5 +77,15 @@ export class TodayCounterComponent implements OnInit {
         )
       }
     );
+  }
+
+  ngOnInit(): void {
+    this.initCounter();
+    this.todayCounterService.startCall$.subscribe(() => {
+      this.startCounter();
+    });
+    this.todayCounterService.stopCall$.subscribe(() => {
+      this.stopCounter();
+    });
   }
 }

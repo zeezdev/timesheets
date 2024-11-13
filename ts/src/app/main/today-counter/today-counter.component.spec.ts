@@ -32,4 +32,8 @@ describe('TodayCounterComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  // TODO: test 'should display time if there is work'
+
+  // TODO: test 'should display 00:00:00 if there is no work'
 });
