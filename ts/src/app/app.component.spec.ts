@@ -8,6 +8,8 @@ import {MatToolbarModule} from "@angular/material/toolbar";
 import {MatIconModule} from "@angular/material/icon";
 import {MatSidenavModule} from "@angular/material/sidenav";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
+import {TodayCounterComponent} from "./main/today-counter/today-counter.component";
+import {TaskService} from "./task/services/task.service";
 
 describe('AppComponent', () => {
   beforeEach(async(() => {
@@ -21,11 +23,13 @@ describe('AppComponent', () => {
         BrowserAnimationsModule,
       ],
       declarations: [
-        AppComponent
+        AppComponent,
+        TodayCounterComponent,
       ],
       providers: [
         OverworkingWatcher,
         WorkService,
+        TaskService,
       ]
     }).compileComponents();
   }));
