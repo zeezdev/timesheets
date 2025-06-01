@@ -67,7 +67,7 @@ export class TodayCounterComponent implements OnInit {
       (report: WorkReportTotal) => {
         this.counterSeconds = report.time;
 
-        // check if is an active work (Task.isCurrent==True) to start increment
+        // check if is an active work (Task.is_current==True) to start increment
         this.taskService.getTasks(undefined, true).subscribe(
           (tasks: Task[]) => {
             if (tasks.length > 0) {

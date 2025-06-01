@@ -16,6 +16,9 @@ services:
     build:
       context: ts
       dockerfile: Dockerfile
+    environment:
+      - HOME=/home/node
+    user: "1000:1000"
     command: npm run start
     volumes:
       - "./ts:/app"
