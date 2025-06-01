@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
@@ -46,7 +46,7 @@ jobs:
           tags: ${{ env.PROD_LATEST_TAG }}
           outputs: type=docker,dest=/tmp/timesheet-prod.tar
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: timesheet-prod-image
           path: /tmp/timesheet-prod.tar

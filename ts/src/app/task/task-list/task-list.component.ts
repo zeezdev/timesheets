@@ -3,6 +3,7 @@ import {Task} from '../services/task';
 import {TaskService} from '../services/task.service';
 import {WorkService} from '../../work/services/work.service';
 import {NotificationService} from "../../shared/notification.service";
+import {TodayCounterSharedService} from "../../main/today-counter/services/today-counter-shared.service";
 
 @Component({
   selector: 'app-task',
@@ -19,6 +20,7 @@ export class TaskListComponent implements OnInit {
     private taskService: TaskService,
     private workService: WorkService,
     private notifications: NotificationService,
+    private todayCounterService: TodayCounterSharedService,
   ) { }
 
   ngOnInit() {
@@ -43,7 +45,10 @@ export class TaskListComponent implements OnInit {
   startWork(id) {
     console.log(`Start work for ${id}`);
     this.workService.startWork(id).subscribe({
-      next: () => this.getTasks(),
+      next: () => {
+        this.getTasks();
+        this.todayCounterService.todayCounterStart();
+      },
       error: err => {
         this.notifications.error(`Error: (${err.status}) ${err.error}.`)
       },
@@ -52,7 +57,10 @@ export class TaskListComponent implements OnInit {
 
   stopWork() {
     this.workService.stopWorkCurrent().subscribe({
-      next: () => this.getTasks(),
+      next: () => {
+        this.getTasks();
+        this.todayCounterService.todayCounterStop();
+      },
       error: err => {
         this.notifications.error(`Error: (${err.status}) ${err.error}.`)
       },

@@ -21,10 +21,13 @@ export class TaskService {
   ) { }
 
   /** GET tasks from the server */
-  getTasks(isArchived?: boolean): Observable<Task[]> {
+  getTasks(isArchived?: boolean, isCurrent?: boolean): Observable<Task[]> {
     const params = {};
     if (isArchived !== undefined) {
       params['is_archived'] = isArchived;
+    }
+    if (isCurrent !== undefined) {
+      params['is_current'] = isCurrent;
     }
     return this.http.get<Task[]>(this.tasksUrl, {params: params})
       .pipe(
