@@ -6,7 +6,7 @@ from factory.alchemy import SQLAlchemyModelFactory
 
 from database import db_session_context
 from dt import get_now_timestamp
-from models import Category, Task, WorkItem
+from models import Category, Task, WorkItem, WeekDay, Settings
 
 init_start_timestamp = datetime.datetime(2024, 1, 1).timestamp()
 
@@ -53,3 +53,14 @@ class WorkItemFactory(SQLAlchemyModelFactory):
     task = factory.SubFactory(TaskFactory)
     start_timestamp = factory.Sequence(start_timestamp)
     end_timestamp = factory.LazyAttribute(lambda self: self.start_timestamp + 300)
+
+
+class SettingsFactory(SQLAlchemyModelFactory):
+    class Meta:
+        model = Settings
+        sqlalchemy_session_factory = session_factory
+        sqlalchemy_session = None
+        sqlalchemy_session_persistence = 'flush'
+
+    first_day_of_week = WeekDay.Monday
+    first_day_of_month = 1

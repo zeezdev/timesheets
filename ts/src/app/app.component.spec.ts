@@ -10,9 +10,31 @@ import {MatSidenavModule} from "@angular/material/sidenav";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {TodayCounterComponent} from "./main/today-counter/today-counter.component";
 import {TaskService} from "./task/services/task.service";
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import {SettingsCache, SettingsService} from "./settings/services/settings.service";
+import {of, Subject} from "rxjs";
+import {Settings} from "./settings/services/settings";
+import {MatMenuModule} from "@angular/material/menu";
 
 describe('AppComponent', () => {
+  let settingsCacheMock: any;
+  let settingsServiceMock: any;
+  let settingsSubject: Subject<Settings>;
+
+  const mockSettings: Settings = {
+    first_day_of_week: 1,
+    first_day_of_month: 1
+  };
+
   beforeEach(async(() => {
+    settingsSubject = new Subject<Settings>();
+    settingsCacheMock = {
+      settings$: settingsSubject.asObservable()
+    };
+    settingsServiceMock = {
+      saveSettings: jasmine.createSpy('saveSettings').and.returnValue(of(mockSettings))
+    };
+
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -21,6 +43,7 @@ describe('AppComponent', () => {
         MatIconModule,
         MatSidenavModule,
         BrowserAnimationsModule,
+        MatMenuModule,
       ],
       declarations: [
         AppComponent,
@@ -30,7 +53,10 @@ describe('AppComponent', () => {
         OverworkingWatcher,
         WorkService,
         TaskService,
-      ]
+        { provide: SettingsCache, useValue: settingsCacheMock },
+        { provide: SettingsService, useValue: settingsServiceMock },
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
   }));
 
@@ -39,17 +65,4 @@ describe('AppComponent', () => {
     const app = fixture.debugElement.componentInstance;
     expect(app).toBeTruthy();
   });
-
-  // it(`should have as title 'ts'`, () => {
-  //   const fixture = TestBed.createComponent(AppComponent);
-  //   const app = fixture.debugElement.componentInstance;
-  //   expect(app.title).toEqual('ts');
-  // });
-
-  // it('should render title in a h1 tag', () => {
-  //   const fixture = TestBed.createComponent(AppComponent);
-  //   fixture.detectChanges();
-  //   const compiled = fixture.debugElement.nativeElement;
-  //   expect(compiled.querySelector('h1').textContent).toContain('Welcome to ts!');
-  // });
 });

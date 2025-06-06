@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
 import schemas
+from models import WeekDay
 from database import get_db
 from dt import ts_to_dt
 from schemas import TaskFilterParams
@@ -28,7 +29,13 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
-    work_item_delete, work_item_read, work_item_update, work_item_update_partial, BaseServiceError,
+    work_item_delete,
+    work_item_read,
+    work_item_update,
+    work_item_update_partial,
+    BaseServiceError,
+    settings_read,
+    settings_update,
 )
 
 origins = [
@@ -81,9 +88,8 @@ def categories_retrieve(category_id: int, db_session: DbSession):
 
 
 @router.put('/categories/{category_id}', response_model=schemas.CategoryOut)
-def categories_save(category_id: int, category: schemas.CategoryOut, db_session: DbSession):
+def categories_save(category_id: int, category: schemas.CategoryIn, db_session: DbSession):
     """Updates a category instance"""
-    # TODO: use CategoryIn
     updated_category = category_update(db_session, category_id, category.name, category.description)
     return updated_category
 
@@ -293,7 +299,7 @@ def work_items_retrieve(work_item_id: int, db_session: DbSession):
 
 
 @router.put('/work/items/{work_item_id}', response_model=schemas.WorkItemOut)
-def work_item_save(work_item_id: int, work_item: schemas.WorkItemOut, db_session: DbSession):
+def work_item_save(work_item_id: int, work_item: schemas.WorkItemUpdate, db_session: DbSession):
     """Updates a work item instance"""
     updated_work_item = work_item_update(
         db_session,
@@ -353,6 +359,29 @@ def work_start(work_start: schemas.WorkStart, db_session: DbSession):
 def work_stop_current(db_session: DbSession):
     # TODO: handle error
     work_item_stop_current(db_session)
+
+
+
+@router.get('/settings', response_model=schemas.SettingsOut, status_code=200)
+def settings_retrieve(db_session: DbSession):
+    """Retrieves settings"""
+    settings = settings_read(db_session)
+
+    return schemas.SettingsOut(
+        first_day_of_week=WeekDay(settings.first_day_of_week),
+        first_day_of_month=settings.first_day_of_month,
+    )
+
+
+@router.put('/settings', response_model=schemas.SettingsOut, status_code=200)
+def settings_save(settings: schemas.SettingsIn, db_session: DbSession):
+    """Updates settings"""
+    settings = settings_update(db_session, settings.first_day_of_week, settings.first_day_of_month)
+
+    return schemas.SettingsOut(
+        first_day_of_week=WeekDay(settings.first_day_of_week),
+        first_day_of_month=settings.first_day_of_month,
+    )
 
 
 # Initialize API

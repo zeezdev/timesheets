@@ -9,10 +9,20 @@ import {MatInputModule} from "@angular/material/input";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {MatDatepickerModule} from "@angular/material/datepicker";
 import {MatTableModule} from "@angular/material/table";
+import { SettingsCache, SettingsService } from "../settings/services/settings.service";
+import {MatMenuModule} from "@angular/material/menu";
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('WorkComponent', () => {
   let component: WorkComponent;
   let fixture: ComponentFixture<WorkComponent>;
+
+  // Моки для SettingsCache и SettingsService
+  const mockSettings = { first_day_of_month: 1 };
+  const settingsCacheMock = {
+    settings: mockSettings
+  };
+  const settingsServiceMock = {};
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -26,7 +36,12 @@ describe('WorkComponent', () => {
         BrowserAnimationsModule,
       ],
       declarations: [WorkComponent],
-      providers: [WorkService]
+      providers: [
+        WorkService,
+        { provide: SettingsCache, useValue: settingsCacheMock },
+        { provide: SettingsService, useValue: settingsServiceMock }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
     })
     .compileComponents();
   }));
