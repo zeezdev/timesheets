@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Annotated
 
-from fastapi.params import Query
 from pydantic import BaseModel
+
+from models import WeekDay
 
 
 #
@@ -114,3 +114,12 @@ class WorkItemPartialUpdate(BaseModel):
 class WorkStart(BaseModel):
     task_id: int
     start: int | None
+
+
+#
+# Settings
+#
+
+class SettingsOut(BaseModel):
+    first_day_of_week: WeekDay
+    first_day_of_month: int

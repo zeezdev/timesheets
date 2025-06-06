@@ -9,6 +9,7 @@ import {WorkItemListComponent} from './work-item/work-item-list/work-item-list.c
 import {WorkItemFormComponent} from './work-item/work-item-form/work-item-form.component';
 import {PageNotFoundComponent} from "./page-not-found/page-not-found/page-not-found.component";
 import {MainPageComponent} from "./main/main-page/main-page.component";
+import {SettingsComponent} from "./settings/settings.component";
 
 const routes: Routes = [
   {path: '', component: MainPageComponent},
@@ -19,6 +20,7 @@ const routes: Routes = [
   {path: 'work', component: WorkComponent},
   {path: 'work-items', component: WorkItemListComponent},
   {path: 'work-items/:id', component: WorkItemFormComponent},
+  {path: 'settings', component: SettingsComponent},
   {path: 'not-found', component: PageNotFoundComponent},
   {path: '**', redirectTo: '/not-found'}
 ];

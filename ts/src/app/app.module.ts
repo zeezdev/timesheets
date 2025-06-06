@@ -1,4 +1,4 @@
-import {NgModule} from '@angular/core';
+import {APP_INITIALIZER, NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 import {HttpClientModule} from '@angular/common/http';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
@@ -17,6 +17,14 @@ import {MatToolbarModule} from "@angular/material/toolbar";
 import {MatIconModule} from "@angular/material/icon";
 import {MatButtonModule} from "@angular/material/button";
 import {MainModule} from "./main/main.module";
+import {SettingsCache} from "./settings/services/settings.service";
+import {MatMenuModule} from "@angular/material/menu";
+import {SettingsModule} from "./settings/settings.module";
+
+
+export function loadAppSettings(settingsCache: SettingsCache) {
+  return () => settingsCache.loadSettings();
+}
 
 @NgModule({
   declarations: [
@@ -37,11 +45,22 @@ import {MainModule} from "./main/main.module";
     WorkItemModule,
     PageNotFoundModule,
     MainModule,
+    SettingsModule,
+    //
     MatSidenavModule,
     MatToolbarModule,
     MatIconModule,
     MatButtonModule,
+    MatMenuModule,
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: loadAppSettings,
+      deps: [SettingsCache],
+      multi: true,
+    }
+  ]
 })
 export class AppModule { }

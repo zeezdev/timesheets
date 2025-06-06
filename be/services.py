@@ -6,12 +6,13 @@ from typing import Sequence, Type, Any
 
 from fastapi import HTTPException
 from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_, Boolean
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
 
 from dt import dt_to_ts, get_now_timestamp
 
-from models import Task, Category, WorkItem
+from models import Task, Category, WorkItem, Settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,10 @@ class WorkItemStartAlreadyStartedError(BaseServiceError):
 class WorkItemDtRangeValidationError(BaseServiceError):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class SettingsInvariantError(BaseServiceError):
+    """Raised when settings record violates the single-record invariant."""
 
 
 # CATEGORY
@@ -456,3 +461,18 @@ def work_get_report_total(db_session: Session, start_dt: datetime, end_dt: datet
             now_ts=now_ts,
         ),
     ).all()
+
+
+# Settings
+
+def settings_read(db_session: Session) -> Settings:
+    """
+    Requests the single settings record from the database.
+    Raises SettingsInvariantError if the record is not found or multiple records are found.
+    """
+    try:
+        return db_session.query(Settings).one()
+    except NoResultFound as e:
+        raise SettingsInvariantError('Setting record not found.')
+    except MultipleResultsFound as e:
+        raise SettingsInvariantError('Multiple settings records found.')

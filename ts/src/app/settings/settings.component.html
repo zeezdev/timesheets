@@ -1,0 +1,51 @@
+<div class="mat-app-background basic-container">
+  <h1>Settings</h1>
+
+  <form class="settings-form" #settingsForm="ngForm" (ngSubmit)="onSubmit(settingsForm)">
+    <mat-form-field class="settings-form-field-full-width">
+      <mat-label>First day of week:</mat-label>
+      <mat-select
+        id="first_day_of_week"
+        name="first_day_of_week"
+        [(ngModel)]="settings.first_day_of_week"
+      >
+        <mat-option [value]="0">
+          Sunday
+        </mat-option>
+        <mat-option [value]="1">
+          Monday
+        </mat-option>
+        <mat-option [value]="2">
+          Tuesday
+        </mat-option>
+        <mat-option [value]="3">
+          Wednesday
+        </mat-option>
+        <mat-option [value]="4">
+          Thursday
+        </mat-option>
+        <mat-option [value]="5">
+          Friday
+        </mat-option>
+        <mat-option [value]="6">
+          Saturday
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="settings-form-field-full-width">
+      <mat-label>First day of month:</mat-label>
+      <input
+        matInput
+        id="first_day_of_month"
+        name="first_day_of_month"
+        [(ngModel)]="settings.first_day_of_month"
+        placeholder="First day of month"
+      />
+    </mat-form-field>
+
+    <mat-card-actions>
+      <button mat-raised-button type="submit" color="primary" id="task-submit">Save</button>
+    </mat-card-actions>
+  </form>
+</div>

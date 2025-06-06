@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
 import schemas
+from models import WeekDay
 from database import get_db
 from dt import ts_to_dt
 from schemas import TaskFilterParams
@@ -28,7 +29,12 @@ from services import (
     work_get_report_task,
     work_get_report_total,
     work_item_list,
-    work_item_delete, work_item_read, work_item_update, work_item_update_partial, BaseServiceError,
+    work_item_delete,
+    work_item_read,
+    work_item_update,
+    work_item_update_partial,
+    BaseServiceError,
+    settings_read,
 )
 
 origins = [
@@ -353,6 +359,20 @@ def work_start(work_start: schemas.WorkStart, db_session: DbSession):
 def work_stop_current(db_session: DbSession):
     # TODO: handle error
     work_item_stop_current(db_session)
+
+
+
+@router.get('/settings', response_model=schemas.SettingsOut, status_code=200)
+def settings_retrieve(request: Request, db_session: DbSession):
+    """
+    Retrieves settings.
+    """
+    settings = settings_read(db_session)
+
+    return schemas.SettingsOut(
+        first_day_of_week=WeekDay(settings.first_day_of_week),
+        first_day_of_month=settings.first_day_of_month,
+    )
 
 
 # Initialize API

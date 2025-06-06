@@ -1,21 +1,13 @@
 import {Component, OnInit} from '@angular/core';
 import {map} from 'rxjs/operators';
 import {FormGroup, FormControl} from '@angular/forms';
-import {MomentDateAdapter, MAT_MOMENT_DATE_ADAPTER_OPTIONS} from '@angular/material-moment-adapter';
+import {MAT_MOMENT_DATE_ADAPTER_OPTIONS} from '@angular/material-moment-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
 import {AppSettings} from "../app.settings";
 import {WorkService} from "./services/work.service";
 import {WorkReportByCategory, WorkReportByTask, WorkReportTotal} from "./services/work";
-
-// Depending on whether rollup is used, moment needs to be imported differently.
-// Since Moment.js doesn't have a default export, we normally need to import using the `* as`
-// syntax. However, rollup creates a synthetic default module and we thus need to import it using
-// the `default as` syntax.
-import * as _moment from 'moment';
-// tslint:disable-next-line:no-duplicate-imports
-import {default as _rollupMoment} from 'moment';
-
-const moment = _rollupMoment || _moment;
+import {CustomMomentDateAdapter} from "./custom-moment-date-adapter";
+import {SettingsCache} from "../settings/services/settings.service";
 
 // See the Moment.js docs for the meaning of these formats:
 // https://momentjs.com/docs/#/displaying/format/
@@ -46,10 +38,13 @@ const day = today.getDate();
     // our example generation script.
     {
       provide: DateAdapter,
-      useClass: MomentDateAdapter,
-      deps: [MAT_DATE_LOCALE, MAT_MOMENT_DATE_ADAPTER_OPTIONS],
+      useClass: CustomMomentDateAdapter,
+      deps: [MAT_DATE_LOCALE, MAT_MOMENT_DATE_ADAPTER_OPTIONS, SettingsCache],
     },
-    {provide: MAT_DATE_FORMATS, useValue: MY_FORMATS},
+    {
+      provide: MAT_DATE_FORMATS,
+      useValue: MY_FORMATS,
+    },
   ],
   styleUrls: ['./work.component.css']
 })
@@ -59,14 +54,17 @@ export class WorkComponent implements OnInit {
   workTotal: string = null;
   displayedColumns: string[] = ['category_id', 'category_name', 'time'];
   displayedColumnsByTask: string[] = ['task_id', 'task_name', 'category_name', 'time'];
-  range = new FormGroup({
-    start: new FormControl(new Date(year, day>20 ? month : month-1, 21)),
-    end: new FormControl(new Date(year, day>20 ? month+1 : month, 20))
-  });
 
-  constructor(private workService: WorkService) { }
+  range!: FormGroup;
+
+  constructor(
+    private settingsCache: SettingsCache,
+    private workService: WorkService,
+  ) { }
 
   ngOnInit() {
+    this.initForm();
+
     // TODO: send Date with TZ info
     const start = new Date(this.range.value.start);
     const end = new Date(this.range.value.end);
@@ -74,6 +72,15 @@ export class WorkComponent implements OnInit {
     this.getWorkReportByCategory(start, end);
     this.getWorkReportByTask(start, end);
     this.getWorkReportTotal(start, end);
+  }
+
+  private initForm() {
+    const firstDayOfMonth = this.settingsCache.getFirstDayOfMonth();
+
+    this.range = new FormGroup({
+      start: new FormControl(new Date(year, day >= firstDayOfMonth ? month : month-1, firstDayOfMonth)),
+      end: new FormControl(new Date(year, day >= firstDayOfMonth ? month+1 : month, firstDayOfMonth-1))
+    });
   }
 
   getWorkReportByCategory(start: Date, end: Date) {
