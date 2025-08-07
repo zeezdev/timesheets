@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { WorkComponent } from './work.component';
 import {HttpClientTestingModule} from "@angular/common/http/testing";
@@ -10,21 +10,19 @@ import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {MatDatepickerModule} from "@angular/material/datepicker";
 import {MatTableModule} from "@angular/material/table";
 import { SettingsCache, SettingsService } from "../settings/services/settings.service";
-import {MatMenuModule} from "@angular/material/menu";
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('WorkComponent', () => {
   let component: WorkComponent;
   let fixture: ComponentFixture<WorkComponent>;
 
-  // Моки для SettingsCache и SettingsService
   const mockSettings = { first_day_of_month: 1 };
   const settingsCacheMock = {
     settings: mockSettings
   };
   const settingsServiceMock = {};
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,

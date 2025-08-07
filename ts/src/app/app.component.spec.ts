@@ -1,4 +1,4 @@
-import { TestBed, async } from '@angular/core/testing';
+import { TestBed, waitForAsync } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import {OverworkingWatcher} from "./work/services/overworking.service";
@@ -26,7 +26,7 @@ describe('AppComponent', () => {
     first_day_of_month: 1
   };
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     settingsSubject = new Subject<Settings>();
     settingsCacheMock = {
       settings$: settingsSubject.asObservable()
