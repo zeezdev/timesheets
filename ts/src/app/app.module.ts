@@ -1,8 +1,13 @@
-import {NgModule} from '@angular/core';
+import {APP_INITIALIZER, NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 import {HttpClientModule} from '@angular/common/http';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatSidenavModule} from "@angular/material/sidenav";
+import {MatToolbarModule} from "@angular/material/toolbar";
+import {MatIconModule} from "@angular/material/icon";
+import {MatButtonModule} from "@angular/material/button";
+import {MatMenuModule} from "@angular/material/menu";
 // Custom
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
@@ -12,11 +17,14 @@ import {SharedModule} from './shared/shared.module';
 import {WorkModule} from './work/work.module';
 import {WorkItemModule} from './work-item/work-item.module';
 import {PageNotFoundModule} from "./page-not-found/page-not-found-module";
-import {MatSidenavModule} from "@angular/material/sidenav";
-import {MatToolbarModule} from "@angular/material/toolbar";
-import {MatIconModule} from "@angular/material/icon";
-import {MatButtonModule} from "@angular/material/button";
 import {MainModule} from "./main/main.module";
+import {SettingsCache} from "./settings/services/settings.service";
+import {SettingsModule} from "./settings/settings.module";
+
+
+export function loadAppSettings(settingsCache: SettingsCache) {
+  return () => settingsCache.loadSettings();
+}
 
 @NgModule({
   declarations: [
@@ -37,11 +45,22 @@ import {MainModule} from "./main/main.module";
     WorkItemModule,
     PageNotFoundModule,
     MainModule,
+    SettingsModule,
+    //
     MatSidenavModule,
     MatToolbarModule,
     MatIconModule,
     MatButtonModule,
+    MatMenuModule,
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: loadAppSettings,
+      deps: [SettingsCache],
+      multi: true,
+    }
+  ]
 })
 export class AppModule { }

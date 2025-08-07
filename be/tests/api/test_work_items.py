@@ -131,16 +131,19 @@ def test_work_items_update(session):
     new_end = work_item.end_timestamp - 10
     new_task = TaskFactory()
     update_data = {
-        'id': work_item.id,
         'task': {'id': new_task.id, 'name': new_task.name},
         'start_dt': ts_to_dt(new_start).isoformat(),
         'end_dt': ts_to_dt(new_end).isoformat(),
+    }
+    expected_response = {
+        'id': work_item.id,
+        **update_data,
     }
 
     response = client.put(f'/api/work/items/{work_item.id}', json=update_data)
 
     assert response.status_code == 200
-    assert response.json() == update_data
+    assert response.json() == expected_response
     session.refresh(work_item)
     assert work_item.start_timestamp == new_start
     assert work_item.end_timestamp == new_end

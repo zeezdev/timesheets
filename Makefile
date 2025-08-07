@@ -31,17 +31,29 @@ run_be_pytest:
 	docker-compose run --build --rm ts-be pytest
 
 run_fe_test:
-	docker-compose run ts-fe npm run test-karma
+	docker-compose run --rm ts-fe npm run test-karma
 
 # Alembic
 
 alembic_revision_autogenerate:
-	# make make_migrations name="My migration"
+	# Generate a new migration automatically
+	# make alembic_revision_autogenerate name="My migration"
 	docker-compose run ts-be alembic revision --autogenerate -m "${name}"
+
+alembic_revision_manual:
+	# Create a manual migration
+	# `make alembic_revision_manual name="My migration"`
+	docker-compose run ts-be alembic revision -m "${name}"
 
 alembic_upgrade_head:
 	# make make_migrations name="My migration"
 	docker-compose run ts-be alembic upgrade head
+
+alembic_downgrade:
+	# Downgrade to a specific revision
+	# make alembic_downgrade revision="1234567890ab"
+	# make alembic_downgrade revision=-1
+	docker compose run ts-be alembic downgrade "${revision}"
 
 # Production
 

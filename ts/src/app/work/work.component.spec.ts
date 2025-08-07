@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { WorkComponent } from './work.component';
 import {HttpClientTestingModule} from "@angular/common/http/testing";
@@ -9,13 +9,21 @@ import {MatInputModule} from "@angular/material/input";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {MatDatepickerModule} from "@angular/material/datepicker";
 import {MatTableModule} from "@angular/material/table";
+import { SettingsCache, SettingsService } from "../settings/services/settings.service";
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('WorkComponent', () => {
   let component: WorkComponent;
   let fixture: ComponentFixture<WorkComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
+  const mockSettings = { first_day_of_month: 1 };
+  const settingsCacheMock = {
+    settings: mockSettings
+  };
+  const settingsServiceMock = {};
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
         RouterTestingModule,
@@ -26,10 +34,15 @@ describe('WorkComponent', () => {
         BrowserAnimationsModule,
       ],
       declarations: [WorkComponent],
-      providers: [WorkService]
+      providers: [
+        WorkService,
+        { provide: SettingsCache, useValue: settingsCacheMock },
+        { provide: SettingsService, useValue: settingsServiceMock }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(WorkComponent);

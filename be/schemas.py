@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Annotated
 
-from fastapi.params import Query
 from pydantic import BaseModel
+
+from models import WeekDay
 
 
 #
@@ -104,8 +104,13 @@ class WorkItemOut(BaseModel):
     end_dt: datetime | None
 
 
+class WorkItemUpdate(BaseModel):
+    task: TaskMinimal = None
+    start_dt: datetime = None
+    end_dt: datetime | None = None
+
+
 class WorkItemPartialUpdate(BaseModel):
-    id: int | None = None
     task: TaskMinimal | None = None
     start_dt: datetime | None = None
     end_dt: datetime | None = None
@@ -114,3 +119,17 @@ class WorkItemPartialUpdate(BaseModel):
 class WorkStart(BaseModel):
     task_id: int
     start: int | None
+
+
+#
+# Settings
+#
+
+class SettingsOut(BaseModel):
+    first_day_of_week: WeekDay
+    first_day_of_month: int
+
+
+class SettingsIn(BaseModel):
+    first_day_of_week: WeekDay
+    first_day_of_month: int

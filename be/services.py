@@ -6,12 +6,13 @@ from typing import Sequence, Type, Any
 
 from fastapi import HTTPException
 from sqlalchemy import Row, select, case, literal_column, and_, text, desc, or_, Boolean
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
 
 from dt import dt_to_ts, get_now_timestamp
 
-from models import Task, Category, WorkItem
+from models import Task, Category, WorkItem, Settings, WeekDay
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,14 @@ class WorkItemStartAlreadyStartedError(BaseServiceError):
 class WorkItemDtRangeValidationError(BaseServiceError):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class SettingsInvariantError(BaseServiceError):
+    """Raised when settings record violates the single-record invariant."""
+
+
+class SettingsFirstDayOfMonthError(BaseServiceError):
+    """Raised when the first day of the month is not in the range 1-31."""
 
 
 # CATEGORY
@@ -456,3 +465,39 @@ def work_get_report_total(db_session: Session, start_dt: datetime, end_dt: datet
             now_ts=now_ts,
         ),
     ).all()
+
+
+# Settings
+
+def settings_read(db_session: Session) -> Settings:
+    """
+    Requests the single settings record from the database.
+    Raises SettingsInvariantError if the record is not found or multiple records are found.
+    """
+    try:
+        return db_session.query(Settings).one()
+    except NoResultFound as e:
+        raise SettingsInvariantError('Setting record not found.')
+    except MultipleResultsFound as e:
+        raise SettingsInvariantError('Multiple settings records found.')
+
+
+def settings_update(db_session: Session, first_day_of_week: WeekDay, first_day_of_month: int) -> Settings:
+    """
+    Updates the single settings record with new data in the database.
+    Raises SettingsInvariantError if the record is not found or multiple records are found.
+    """
+    if not (1 <= first_day_of_month <= 31):
+        raise SettingsFirstDayOfMonthError('First day of month must be between 1 and 31.')
+
+    try:
+        settings = db_session.query(Settings).one()
+    except NoResultFound as e:
+        raise SettingsInvariantError('Setting record not found.')
+    except MultipleResultsFound as e:
+        raise SettingsInvariantError('Multiple settings records found.')
+
+    settings.first_day_of_month = first_day_of_month
+    settings.first_day_of_week = first_day_of_week
+    db_session.commit()
+    return settings

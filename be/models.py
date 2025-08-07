@@ -1,7 +1,10 @@
+import enum
+
 import sqlalchemy.sql.elements
 from sqlalchemy import Text, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import false
+from sqlalchemy.sql.expression import text
 
 
 class Base(DeclarativeBase):
@@ -46,3 +49,21 @@ class WorkItem(Base):
     task: Mapped['Task'] = relationship(back_populates='work_items')
     start_timestamp: Mapped[int]
     end_timestamp: Mapped[int | None] = mapped_column(nullable=True, server_default=sqlalchemy.sql.elements.TextClause('NULL'))
+
+
+class WeekDay(enum.IntEnum):
+    Sunday = 0
+    Monday = 1
+    Tuesday = 2
+    Wednesday = 3
+    Thursday = 4
+    Friday = 5
+    Saturday = 6
+
+
+class Settings(Base):
+    __tablename__ = 'settings'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    first_day_of_week: Mapped[int] = mapped_column(default=WeekDay.Sunday, server_default=text(str(WeekDay.Sunday)))
+    first_day_of_month: Mapped[int] = mapped_column(default=1, server_default=text('1'))

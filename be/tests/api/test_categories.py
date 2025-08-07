@@ -69,9 +69,12 @@ def test_categories_save(session):
     # Arrange
     category = CategoryFactory()
     update_data = {
-        'id': category.id,
         'name': f'{category.name} Updated',
         'description': 'New description',
+    }
+    expected_data = {
+        'id': category.id,
+        **update_data,
     }
 
     # Act
@@ -82,7 +85,7 @@ def test_categories_save(session):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == update_data
+    assert response.json() == expected_data
     session.refresh(category)
     assert category.name == update_data['name']
     assert category.description == update_data['description']

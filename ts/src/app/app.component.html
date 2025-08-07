@@ -4,19 +4,26 @@
       <mat-icon>menu</mat-icon>
     </button>
 
-    <!-- Title on the left -->
     <h1 style="margin-left: 16px; margin: 0;">
       <a routerLink="/" style="text-decoration: none; color: inherit;">Simple Timesheets</a>
     </h1>
   </div>
 
-  <!-- Timer in the center of the entire title -->
   <div style="position: absolute; left: 50%; transform: translateX(-50%);">
     <app-today-counter></app-today-counter>
   </div>
 
-  <!-- Icon on the right -->
-  <mat-icon class="logo">event</mat-icon>
+  <div>
+    <button mat-icon-button [matMenuTriggerFor]="menu">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu" >
+      <button mat-menu-item [routerLink]="'/settings'">
+        <mat-icon style="padding-right: 16px; margin-right: 0;">settings</mat-icon>
+        Settings
+      </button>
+    </mat-menu>
+  </div>
 </mat-toolbar>
 
 <mat-sidenav-container style="height: 100vh;">
