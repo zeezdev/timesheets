@@ -3,7 +3,6 @@ import {TaskService} from "./task.service";
 import {of, throwError} from "rxjs";
 import {Task} from "./task";
 import {asyncError} from "../../shared/utils";
-import {async, TestBed} from "@angular/core/testing";
 import {Router} from "@angular/router";
 
 

@@ -1,4 +1,4 @@
-import { TestBed, async } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import {OverworkingWatcher} from "./work/services/overworking.service";
@@ -26,7 +26,7 @@ describe('AppComponent', () => {
     first_day_of_month: 1
   };
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     settingsSubject = new Subject<Settings>();
     settingsCacheMock = {
       settings$: settingsSubject.asObservable()
@@ -35,7 +35,7 @@ describe('AppComponent', () => {
       saveSettings: jasmine.createSpy('saveSettings').and.returnValue(of(mockSettings))
     };
 
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
         RouterTestingModule,
@@ -58,7 +58,7 @@ describe('AppComponent', () => {
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
-  }));
+  });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
